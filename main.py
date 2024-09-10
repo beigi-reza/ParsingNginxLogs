@@ -5,7 +5,7 @@ import lib.BaseFunction as base
 import re
 import os
 import shlex
-import pandas as pd
+#import pandas as pd
 import Banner
 from collections import OrderedDict,Counter
 from datetime import datetime
@@ -76,15 +76,15 @@ class Parser:
         except Exception as e:
             raise e
 
-def LoadVaraiableFromLogs(LogsDf):
-    global list_IP_Unique   
-    global list_IP          
-    global User_Agent_Unique
-    global User_Agent       
-    list_IP_Unique     = LogsDf["ip"].unique()
-    list_IP            = LogsDf["ip"].value_counts().to_dict()
-    User_Agent_Unique  = LogsDf["user_agent"].unique()
-    User_Agent         = LogsDf["user_agent"].value_counts().to_dict()
+#def LoadVaraiableFromLogs(LogsDf):
+#    global list_IP_Unique   
+#    global list_IP          
+#    global User_Agent_Unique
+#    global User_Agent       
+#    list_IP_Unique     = LogsDf["ip"].unique()
+#    list_IP            = LogsDf["ip"].value_counts().to_dict()
+#    User_Agent_Unique  = LogsDf["user_agent"].unique()
+#    User_Agent         = LogsDf["user_agent"].value_counts().to_dict()
 
 def LoadLogFile():
     base.clearScreen()
@@ -92,23 +92,24 @@ def LoadLogFile():
     Banner.PleaseWait()
     print("")
     print(f"{_B}{_w} Please Wait for analyze log File{_reset}")    
-    global logs_df
+    #global logs_df
     global url_counter
     global DateString    
     now = datetime.now()
     DateString = now.strftime("%d/%m/%Y %H:%M:%S")    
-    logs_df = ParsingLogFileByParser() 
+    #logs_df = ParsingLogFileByParser() 
     url_counter = ParingLogFile()
     
-def ParsingLogFileByParser():
-    parser = Parser()    
-    with open(LOG_FILE, "r") as f:
-        log_entries = [parser.parse_line(line) for line in f]        
-    _logs_df = pd.DataFrame(log_entries)            
-    return _logs_df
+#def ParsingLogFileByParser():
+#    parser = Parser()    
+#    with open(LOG_FILE, "r") as f:
+#        log_entries = [parser.parse_line(line) for line in f]        
+#    _logs_df = pd.DataFrame(log_entries)            
+#    return _logs_df
 
 def ParingLogFile():
-    #
+    #            
+    global CountLogs
     global L_day
     global L_month
     global L_year
@@ -124,15 +125,24 @@ def ParingLogFile():
     global F_second
 
     # Regex
+    Agent_pattern = r'"[^"]*" "[^"]*" "([^"]+)"'
+    IP_pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
     url_pattern = re.compile(r'"GET\s(\/[^\s]*)')
     Date_pattern = r'\[(\d{2})/(\w{3})/(\d{4}):(\d{2}):(\d{2}):(\d{2}) [+-]\d{4}\]'
     # Dictionary to store URLs and their counts
+    global Ip_counter
+    global url_counter
+    global Agent_counter
     url_counter = Counter()
+    Ip_counter = Counter()
+    Agent_counter = Counter()
     
     # Read the log file and parse URLs
+    CountLogs = 0
     with open(LOG_FILE, 'r') as f:
         FirstLine = True
         for line in f:
+            CountLogs += 1
             DateMatch = re.search(Date_pattern, line)
             if DateMatch:
                 L_day, L_month, L_year, L_hour, L_minute, L_second = DateMatch.groups()
@@ -140,17 +150,30 @@ def ParingLogFile():
                     F_day, F_month, F_year, F_hour, F_minute, F_second = DateMatch.groups()
                     FirstLine = False                
             
+            IpMatch = re.search(IP_pattern, line)
+            ## list_IP
+            if IpMatch: 
+                ip_address = IpMatch.group(1)
+                Ip_counter[ip_address] +=1
+            ## list_URL
             matchURL = url_pattern.search(line)
             if matchURL:
                 url = matchURL.group(1)  # Get the matched URL
                 url_counter[url] += 1
+            
+            AgentMatch = re.search(Agent_pattern, line)
+            if AgentMatch:
+                user_agent = AgentMatch.group(1)
+                Agent_counter[user_agent] += 1
+
+                
     return url_counter
 
 
 def printStatus():    
-    RowAnalyzed = f"{_B}{_b}Row analyzed {_bb} {len(logs_df.index)} {_reset}"    
-    CountIP = f"{_y}Uniq ip detected  {_by} {len(list_IP_Unique)} {_w}{_reset}"
-    CountAgent = f"{_g} Uniq agent detected {_blg} {len(User_Agent_Unique)} {_w}{_reset}"    
+    RowAnalyzed = f"{_B}{_b}Row analyzed {_bb} {CountLogs} {_reset}"    
+    CountIP = f"{_y}Uniq ip detected  {_by} {len(Ip_counter)} {_w}{_reset}"
+    CountAgent = f"{_g} Uniq agent detected {_blg} {len(Agent_counter)} {_w}{_reset}"    
     CountURL = f"{_c} Uniq URL detected {_bc} {len(url_counter)} {_w}{_reset}"    
     LastSync = f"{_w}Parsing log File at {_bbw} {DateString} {_w}{_reset}"    
     TimeofLog = f"{_w} Between [ {_b}{F_day} {F_month} {F_year} / {F_hour}:{F_minute}:{F_second}{_w} ] and [ {_b}{L_day} {L_month} {L_year} / {L_hour}:{L_minute}:{L_second} {_w}]"
@@ -391,7 +414,7 @@ if base.CheckExistFile(LOG_FILE,"",PrintIt=True) is False:
 
 if __name__ == '__main__':    
     LoadLogFile()
-    LoadVaraiableFromLogs(logs_df)    
+    #LoadVaraiableFromLogs(logs_df)    
     base.clearScreen()
     Banner.ParsingLogo()    
     printStatus()
