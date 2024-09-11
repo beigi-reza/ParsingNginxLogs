@@ -1,29 +1,45 @@
-import pandas as pd
 import re
+from collections import Counter
 
-# Path to the Nginx access log file
-log_file = 'access.log'
 
-# Regular expression to match the URL from the log entry
-url_pattern = re.compile(r'"GET\s(\/[^\s]*)')
+Agent_counter = Counter()
+# Function to extract user-agent browser info
+def extract_browser(user_agent):
+    # Simple regex to match popular browsers like Chrome, Firefox, Safari, etc.
+    browser_regex = r"(Windows|Mac OS|Linux|Android)"
+    match = re.search(browser_regex, user_agent)
+    if match:
+        a = match.group(1)        
+        return match.group(1)
+    
+    
+    Agent_counter[user_agent] +=1
+    return "Unknown"
 
-# Create an empty list to store log data
-log_data = []
+# Parse the nginx access log
+def parse_nginx_log(file_path):
+    # Initialize a counter to count browsers
+    browser_counter = Counter()
 
-# Read the log file and extract URLs
-with open(log_file, 'r') as f:
-    for line in f:
-        match = url_pattern.search(line)
-        if match:
-            url = match.group(1)  # Get the matched URL
-            log_data.append(url)
+    # Open the access log
+    with open(file_path, 'r') as file:
+        for line in file:
+            # Extract the user-agent part (between the quotes after the last '-')
+            user_agent = line.split('"')[-4]
+            browser = extract_browser(user_agent)
+            browser_counter[browser] += 1
+    
+    return browser_counter
 
-# Create a DataFrame from the extracted URLs
-df = pd.DataFrame(log_data, columns=['URL'])
+# Path to the nginx access log
+log_file_path = "/home/beigi/myApp/ParsingNginxLogs/SampleFile/access.log"
 
-# Count the occurrences of each URL
-url_counts = df['URL'].value_counts().reset_index()
-url_counts.columns = ['URL', 'Count']
+# Get the browser count
+browser_count = parse_nginx_log(log_file_path)
 
-# Display the top 10 most common URLs
-print(url_counts.head(10))
+# Display the results
+
+for _ in Agent_counter:
+    print (f"{_}: {Agent_counter[_]}")
+for browser, count in browser_count.items():
+    print(f"{browser}: {count}")

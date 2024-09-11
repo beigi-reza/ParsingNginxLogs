@@ -1,44 +1,42 @@
-#####   import re
-#####   from collections import Counter
-#####   
-#####   # Path to the Nginx access log file
-#####   log_file = '/home/beigi/myApp/ParsingNginxLogs/SampleFile/access.log'
-#####   
-#####   # Regular expression to match the URL and status code from the log entry
-#####   log_pattern = re.compile(r'"GET\s(\/[^\s]*)\sHTTP/1\.\d"\s(\d{3})')
-#####   
-#####   # Dictionary to store the status codes and their counts
-#####   status_code_counter = Counter()
-#####   
-#####   # Read the log file and extract URLs with status codes
-#####   with open(log_file, 'r') as f:
-#####       for line in f:
-#####           match = log_pattern.search(line)
-#####           if match:
-#####               url = match.group(1)  # Extract the URL
-#####               status_code = int(match.group(2))  # Extract the status code
-#####               status_code_counter[status_code] += 1  # Increment the count for this status code
-#####   
-#####   # Display the count of each status code
-#####   for status_code, count in status_code_counter.most_common():
-#####       print(f"Status Code {status_code}: {count} occurrences")
-
 import re
+from collections import Counter
 
-# Sample Nginx log entry
-log_entry = '127.0.0.1 - - [10/Sep/2024:12:34:56 +0000] "GET / HTTP/1.1" 200 612 "-" "Mozilla/5.0"'
 
-# Regex pattern to capture the date and time
-pattern = r'\[(\d{2})/(\w{3})/(\d{4}):(\d{2}):(\d{2}):(\d{2}) [+-]\d{4}\]'
+Agent_counter = Counter()
+# Function to extract user-agent browser info
+def extract_browser(user_agent):
+    # Simple regex to match popular browsers like Chrome, Firefox, Safari, etc.
+    browser_regex = r"(Chrome|Firefox|Safari|Opera|Edge|Trident|Googlebot|facebookexternalhit|meta-externalagent|curl|Dalvik|WordPress)"
+    match = re.search(browser_regex, user_agent)
+    if match:
+        return match.group(1)
+    Agent_counter[user_agent] +=1
+    return "Unknown"
 
-# Find the date and time in the log entry
-match = re.search(pattern, log_entry)
+# Parse the nginx access log
+def parse_nginx_log(file_path):
+    # Initialize a counter to count browsers
+    browser_counter = Counter()
 
-if match:
-    day, month, year, hour, minute, second = match.groups()
-    print(f"Date: {day} {month} {year}")
-    print(f"Time: {hour}:{minute}:{second}")
+    # Open the access log
+    with open(file_path, 'r') as file:
+        for line in file:
+            # Extract the user-agent part (between the quotes after the last '-')
+            user_agent = line.split('"')[-4]
+            browser = extract_browser(user_agent)
+            browser_counter[browser] += 1
     
-    print(f"{day} {month} {year} / {hour}:{minute}:{second}")
-else:
-    print("No match found.")
+    return browser_counter
+
+# Path to the nginx access log
+log_file_path = "/home/beigi/myApp/ParsingNginxLogs/SampleFile/access.log"
+
+# Get the browser count
+browser_count = parse_nginx_log(log_file_path)
+
+# Display the results
+
+for _ in Agent_counter:
+    print (f"{_}: {Agent_counter[_]}")
+for browser, count in browser_count.items():
+    print(f"{browser}: {count}")

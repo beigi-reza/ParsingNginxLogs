@@ -124,18 +124,22 @@ def ParingLogFile():
     global F_minute
     global F_second
 
-    # Regex
-    Agent_pattern = r'"[^"]*" "[^"]*" "([^"]+)"'
+    # Regex    
     IP_pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
     url_pattern = re.compile(r'"GET\s(\/[^\s]*)')
     Date_pattern = r'\[(\d{2})/(\w{3})/(\d{4}):(\d{2}):(\d{2}):(\d{2}) [+-]\d{4}\]'
     # Dictionary to store URLs and their counts
     global Ip_counter
-    global url_counter
+    global url_counter    
     global Agent_counter
+    global Unknown_Agent_counter
+    global browser_counter
     url_counter = Counter()
-    Ip_counter = Counter()
+    Ip_counter = Counter()    
     Agent_counter = Counter()
+    Unknown_Agent_counter = Counter()
+    browser_counter = Counter()
+
     
     # Read the log file and parse URLs
     CountLogs = 0
@@ -159,21 +163,30 @@ def ParingLogFile():
             matchURL = url_pattern.search(line)
             if matchURL:
                 url = matchURL.group(1)  # Get the matched URL
-                url_counter[url] += 1
-            
-            AgentMatch = re.search(Agent_pattern, line)
-            if AgentMatch:
-                user_agent = AgentMatch.group(1)
-                Agent_counter[user_agent] += 1
-
+                url_counter[url] += 1        
+            ## Agent
+            user_agent = line.split('"')[-4]            
+            browser = extract_browser(user_agent)            
+            browser_counter[browser] += 1
                 
     return url_counter
 
 
+
+def extract_browser(user_agent):
+    browser_regex = r"(Chrome|Firefox|Safari|Opera|Edge|Trident|Googlebot|facebookexternalhit|meta-externalagent|curl|Dalvik|WordPress)"
+    match = re.search(browser_regex, user_agent)
+    if match:
+        Agent_counter[user_agent] +=1
+        return match.group(1)
+    Unknown_Agent_counter[user_agent] +=1
+    return "Unknown"
+
+
 def printStatus():    
     RowAnalyzed = f"{_B}{_b}Row analyzed {_bb} {CountLogs} {_reset}"    
-    CountIP = f"{_y}Uniq ip detected  {_by} {len(Ip_counter)} {_w}{_reset}"
-    CountAgent = f"{_g} Uniq agent detected {_blg} {len(Agent_counter)} {_w}{_reset}"    
+    CountIP = f"{_y}Uniq ip detected  {_by} {len(Ip_counter)} {_w}{_reset}"    
+    CountAgent = f"{_g} Unknown agent detected {_blg} {len(Unknown_Agent_counter)} {_w}{_reset}"    
     CountURL = f"{_c} Uniq URL detected {_bc} {len(url_counter)} {_w}{_reset}"    
     LastSync = f"{_w}Parsing log File at {_bbw} {DateString} {_w}{_reset}"    
     TimeofLog = f"{_w} Between [ {_b}{F_day} {F_month} {F_year} / {F_hour}:{F_minute}:{F_second}{_w} ] and [ {_b}{L_day} {L_month} {L_year} / {L_hour}:{L_minute}:{L_second} {_w}]"
@@ -231,20 +244,12 @@ def FnPrintIP(ListOfIP,MaxPrint = 50):
         else:
             break    
     base.PrintMessage(messageString="End of List ...", MsgType="notif", AddLine = True, addSpace = 0, BackgroudMsg = False)  
-
 def FnPrintAgent(ListOfAgent,MaxPrint = 50):
-    """
-    لیست مرورگرها و تعداد تکرار آن را پرینت می کتد
-    
-    Args: 
-        ListOfIP :  received from parser
-        MaxPrint :  It should not be printed smaller than what amount        
-    """
-    ordered_dict = order_dict_by_value(User_Agent)
+    ordered_dict = order_dict_by_value(ListOfAgent)
     base.clearScreen()
     Banner.ParsingLogo()
     print("")
-    print (_w + _B +"{:<5} {:<10} {:<150}".format("No.","Count","Agent") + _reset )    
+    print (_w + _B +"{:<5} {:<10} {:<100}".format("No.","Count","Agent") + _reset )    
     print("")
     xI = 1
     for _ in ordered_dict :        
@@ -260,13 +265,32 @@ def FnPrintAgent(ListOfAgent,MaxPrint = 50):
             ClmnColor = _c            
         else:
             ClmnColor = _w            
-        if xI <= MaxPrint:            
-            print (_B + _w + "{:<5} {:<10} {:<150}".format(str(xI), ClmnColor + str(ordered_dict[_]), _ ) + _reset )
+        if xI <= MaxPrint:
+            print (_B + _w + "{:<5} {:<10} {:<100}".format(str(xI),ClmnColor + str(ordered_dict[_]) ,_ ) + _reset )
             xI += 1
         else:
             break    
     base.PrintMessage(messageString="End of List ...", MsgType="notif", AddLine = True, addSpace = 0, BackgroudMsg = False)  
 
+def FnPrintBrowser():   
+    order_dict = order_dict_by_value(browser_counter)
+    base.clearScreen()
+    Banner.ParsingLogo()
+    xI = 1
+    for x in order_dict:
+        if xI <= 1:
+            ClmnColor = _r
+        elif xI <= 2:
+            ClmnColor = _m
+        elif xI <= 3:
+            ClmnColor = _y
+        elif xI <= 5:
+            ClmnColor = _c
+        elif xI <= 8:
+            ClmnColor = _b
+        xI += 1    
+        print (f"{_w}{x}: {ClmnColor}{order_dict[x]}{_reset}")
+    
 def MainMenuIP():
     print(f"{_w}")
     print(f"type [ {_D}{_w}q{_N}{_w}     ] quit{_reset}")
@@ -279,16 +303,38 @@ def MainMenuIP():
         Banner.ParsingLogo()    
         printStatus()
         MainMenu()        
+
+def MainMenuAgent():
+    print(f"{_w}")
+    print(f"type [ {_D}{_w}q{_N}{_w}     ] quit{_reset}")
+    print(f"     [ {_D}{_w}enter{_N}{_w} ] for Main Menu")
+    print(f"     [ {_D}{_y}a{_N}{_w} ] for Unknow Agent")
+    print("")
+    UserInput = input(f"{_B}{_w}or Enter ({_y}Browser Name{_w}) :{_reset}")
+    if UserInput.strip() == "":
+        base.clearScreen()
+        Banner.ParsingLogo()    
+        printStatus()
+        MainMenu()        
+    
+    if UserInput.lower() == 'a':
+        base.clearScreen()
+        Banner.ParsingLogo()
+        NumberInt = GetNumberofFromUser(len(browser_counter))
+        FnPrintAgent(Unknown_Agent_counter,NumberInt)
+
+        
         
 
 def MainMenu():
     print(f"{_w}")
     print(f"type [ {_D}{_w}q{_N}{_w}     ] quit{_reset}")
     print(f"     [ {_D}{_w}enter{_N}{_w} ] for Main Menu")
-    print(f"     [ {_b}ip{_w}    ] list of IP")
-    print(f"     [ {_b}url{_w}   ] list of url")
-    print(f"     [ {_b}Agent{_w} ] list of Agent")
-    print(f"     [ {_y}code{_w} ] list of Status Code")
+    print(f"     [ {_c}i{_w} ] list of IP")
+    print(f"     [ {_c}u{_w} ] list of url")
+    print(f"     [ {_c}b{_w} ] list of Browser")
+    print(f"     [ {_c}c{_w} ] list of Status Code")
+    print(f"     [ {_c}a{_w} ] list of Unknown Agent")
     print(f"     [ {_r}reload{_w} ] Reload Log file")
     
     
@@ -300,25 +346,29 @@ def MainMenu():
         printStatus()
         MainMenu()        
         
-    if UserInput.strip().lower() == "ip":
-        NumberInt = GetNumberofFromUser(len(list_IP_Unique))
-        FnPrintIP(list_IP,NumberInt)
+    if UserInput.strip().lower() == "i":
+        NumberInt = GetNumberofFromUser(len(Ip_counter))
+        FnPrintIP(Ip_counter,NumberInt)
         MainMenuIP()
-    elif UserInput.strip().lower() == "agent":
-        NumberInt = GetNumberofFromUser(len(User_Agent_Unique))
-        FnPrintAgent(User_Agent,NumberInt)
-        MainMenu()
-    elif UserInput.strip().lower() == "url":
+    elif UserInput.strip().lower() == "u":
         NumberInt = GetNumberofFromUser(len(url_counter))
         PrintURL(url_counter,NumberInt)
         MainMenu()
-    elif UserInput.strip().lower() == "code":
+    elif UserInput.strip().lower() == "b":        
+        FnPrintBrowser()        
+        MainMenuAgent()
+    elif UserInput.strip().lower() == "c":
         printStatusCode()
         print("")
         MainMenu()
+    elif UserInput.strip().lower() == "a":        
+        NumberInt = GetNumberofFromUser(len(browser_counter))
+        FnPrintAgent(Unknown_Agent_counter,NumberInt)
+        MainMenuAgent()
+        
     elif UserInput.strip().lower() == "reload":
         LoadLogFile()
-        LoadVaraiableFromLogs(logs_df)    
+        #LoadVaraiableFromLogs(logs_df)    
         base.clearScreen()
         Banner.ParsingLogo()    
         printStatus()
