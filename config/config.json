@@ -1,4 +1,4 @@
 {
-    "Log_File" : "/home/beigi/myApp/ParsingNginxLogs/SampleFile/access.log",
+    "Log_File" : "/ronixToolsWebSite/access-log/access.log.1",
     "Max_Line" : 60
 }

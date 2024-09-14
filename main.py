@@ -178,7 +178,7 @@ def extract_browser(user_agent):
     match = re.search(browser_regex, user_agent)
     if match:
         Agent_counter[user_agent] +=1
-        return match.group(1)
+        return match.group(1)    
     Unknown_Agent_counter[user_agent] +=1
     return "Unknown"
 
@@ -362,7 +362,7 @@ def MainMenu():
         print("")
         MainMenu()
     elif UserInput.strip().lower() == "a":        
-        NumberInt = GetNumberofFromUser(len(browser_counter))
+        NumberInt = GetNumberofFromUser(len(Unknown_Agent_counter))
         FnPrintAgent(Unknown_Agent_counter,NumberInt)
         MainMenuAgent()
         
@@ -373,6 +373,11 @@ def MainMenu():
         Banner.ParsingLogo()    
         printStatus()
         MainMenu()
+    else:
+        base.clearScreen()
+        Banner.ParsingLogo()    
+        printStatus()
+        MainMenu()            
     
     
     
