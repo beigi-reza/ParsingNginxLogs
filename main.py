@@ -98,7 +98,7 @@ def LoadLogFile():
     global url_counter
     #url_counter = ParingLogFile()
     url_counter = ParingLogFileWithFilter()
-    
+    print(status_code_counter)
 
 
 def ParingLogFileWithFilter():
@@ -117,11 +117,13 @@ def ParingLogFileWithFilter():
     global Agent_counter
     global Unknown_Agent_counter
     global browser_counter
+    global status_code_counter
     url_counter = Counter()
     Ip_counter = Counter()    
     Agent_counter = Counter()
     Unknown_Agent_counter = Counter()
     browser_counter = Counter()
+    status_code_counter = Counter()
 
     CountLogs = 0    
     
@@ -159,26 +161,33 @@ def ParingLogFileWithFilter():
                     AllAgent = FilterByAllAgent(line,FILTER_UNKNOW_AGENT)
                     if AllAgent == None:
                         AddThisLine = False
+                        
+                StatusCode = GetCodeFromLine(line,FILTER_CODE)
+                if StatusCode == None:
+                    AddThisLine = False
 
                 if AddThisLine:
                     Ip_counter[ip_address] +=1
                     url_counter[url] += 1
+                    status_code_counter[StatusCode] += 1
                     if agent != 'unknow':
                         browser_counter[agent] += 1
                     #Unknown_Agent_counter[AllAgent] += 1
-
-
-    #if matchBrewser:
-    #    Agent_counter[user_agent] +=1        
-    #    browser_counter[matchBrewser.group(1)] += 1        
-    #else:    
-    #    Unknown_Agent_counter[user_agent] +=1                                        
-                            
-#                GetUrl(url_pattern,line)
-#                getAgent(line)
     return url_counter            
 
 
+def GetCodeFromLine(line,CodeFilter = []):
+    Status_Code_Pattern = re.compile(r'"GET\s(\/[^\s]*)\sHTTP/1\.\d"\s(\d{3})')    
+    CodeMatch = Status_Code_Pattern.search(line)
+    if CodeMatch:        
+        status_code = int(CodeMatch.group(2))  # Extract the status code        
+        if CodeFilter == []:
+            return status_code
+        else:
+            for _code in CodeFilter:
+                if _code == status_code:
+                    return status_code
+        return None        
 
 
 def GetIpFromLine(line,IpFilter = ''):
@@ -828,30 +837,23 @@ def PrintURL(url_couter,MaxPrint):
     base.PrintMessage(messageString="End of List ...", MsgType="notif", AddLine = True, addSpace = 0, BackgroudMsg = False)  
     
 def printStatusCode():
-    log_pattern = re.compile(r'"GET\s(\/[^\s]*)\sHTTP/1\.\d"\s(\d{3})')
-    status_code_counter = Counter()
-    with open(LOG_FILE, 'r') as f:
-        for line in f:
-            match = log_pattern.search(line)
-            if match:
-                url = match.group(1)  # Extract the URL
-                status_code = int(match.group(2))  # Extract the status code
-                status_code_counter[status_code] += 1  # Increment the count for this status code
     base.clearScreen()
     Banner.ParsingLogo()    
     print("")    
     for status_code, count in status_code_counter.most_common():
         CodeColor = _w
         occurrencesMSg = "occurrences"
-        if status_code in [200, 201, 202, 203, 204, 205, 206, 207, 208, 226]:
+        if status_code in All_StatusCode_1x:
+            CodeColor = _m
+        elif status_code in All_StatusCode_2x:
             CodeColor = _g
-        elif status_code in [300,301,302,303,304,305,306,307,308]:
+        elif status_code in All_StatusCode_3x:
             CodeColor = _y
-        elif status_code in [400,401,402,403,404,405,406,407,408,409,410,411,412,413,414,415,416,417,418,421,422,423,424,425,426,428,429,431,451]:
+        elif status_code in All_StatusCode_4x:
             CodeColor = _r
-        elif status_code in [500,501,502,503,504,505,506,507,508,510,511]:
+        elif status_code in All_StatusCode_5x:
             CodeColor = _c
-        elif status_code in [444,494,495,496,497,499]:
+        elif status_code in All_NginxStatusCode:
             CodeColor = _r
             occurrencesMSg = f"expands by Nginx"
         
@@ -908,6 +910,9 @@ def IpFilterMenu():
     else:    
     #elif UserInput.strip().lower() == "":
         return UserInput.strip().lower()
+
+def 
+
     
 def AllFilterStatus(AllFilterOff = False):
     global filterStatus
