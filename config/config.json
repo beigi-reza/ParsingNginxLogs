@@ -1,4 +1,4 @@
 {
-    "Log_File" : "/home/beigi/myApp/ParsingNginxLogs/config/config.json",
+    "Log_File" : "/home/beigi/myApp/ParsingNginxLogs/SampleFile/access.log",
     "Max_Line" : 60
 }

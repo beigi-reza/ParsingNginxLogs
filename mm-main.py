@@ -1,45 +1,45 @@
 import re
-from collections import Counter
+from datetime import datetime
 
-
-Agent_counter = Counter()
-# Function to extract user-agent browser info
-def extract_browser(user_agent):
-    # Simple regex to match popular browsers like Chrome, Firefox, Safari, etc.
-    browser_regex = r"(Windows|Mac OS|Linux|Android)"
-    match = re.search(browser_regex, user_agent)
-    if match:
-        a = match.group(1)        
-        return match.group(1)
+def read_log_from_end(file_path, target_date_str, date_format='%Y-%m-%d %H:%M:%S'):
+    target_date = datetime.strptime(target_date_str, date_format)
     
-    
-    Agent_counter[user_agent] +=1
-    return "Unknown"
+    with open(file_path, 'rb') as f:
+        # Move to the end of the file
+        f.seek(0, 2)
+        file_size = f.tell()
+        buffer_size = 1024
+        buffer = bytearray()
+        
+        position = file_size
+        while position > 0:
+            position -= buffer_size
+            if position < 0:
+                buffer_size += position
+                position = 0
+            
+            f.seek(position)
+            buffer = f.read(buffer_size) + buffer
+            
+            lines = buffer.split(b'\n')
+            for line in reversed(lines):
+                try:
+                    log_date_str = line.decode('utf-8').split(' ')[0]  # Assuming the date is the first part of the log entry
+                    log_date = datetime.strptime(log_date_str, date_format)
+                    if log_date <= target_date:
+                        print(log_date)
+                        return [line.decode('utf-8') for line in reversed(lines) if line.decode('utf-8').split(' ')[0] <= target_date_str]
+                except ValueError:
+                    # Skip lines that don't match the date format
+                    print("1")
+                    continue
 
-# Parse the nginx access log
-def parse_nginx_log(file_path):
-    # Initialize a counter to count browsers
-    browser_counter = Counter()
+        return []
 
-    # Open the access log
-    with open(file_path, 'r') as file:
-        for line in file:
-            # Extract the user-agent part (between the quotes after the last '-')
-            user_agent = line.split('"')[-4]
-            browser = extract_browser(user_agent)
-            browser_counter[browser] += 1
-    
-    return browser_counter
+# Example usage
+file_path = '/home/beigi/myApp/ParsingNginxLogs/SampleFile/access.log'
+target_date_str = '2024-09-14 16:56:24'
+log_entries = read_log_from_end(file_path, target_date_str)
 
-# Path to the nginx access log
-log_file_path = "/home/beigi/myApp/ParsingNginxLogs/SampleFile/access.log"
-
-# Get the browser count
-browser_count = parse_nginx_log(log_file_path)
-
-# Display the results
-
-for _ in Agent_counter:
-    print (f"{_}: {Agent_counter[_]}")
-for browser, count in browser_count.items():
-    print(f"{browser}: {count}")
+for entry in log_entries:
+    print(entry)

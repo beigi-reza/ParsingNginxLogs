@@ -73,7 +73,4 @@ def ParsingLogo():
 
 if __name__ == "__main__":    
     print(f"{Style.NORMAL + Fore.YELLOW}You should not run this file directly")  
-    RonixLogo()
-    PleaseWait()
-    ParsingLogo()
 
