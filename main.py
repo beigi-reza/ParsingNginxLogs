@@ -269,9 +269,28 @@ def printStatus():
         print("")
         print(f'{_w}-------------------------- Filter information --------------------------{_reset}')
         print("")
-        if ManualScope != '':        
-            print(f'{_w}Time Range is {_blg} ON {_reset}{_w} for ( {_B}{_br} {ManualScope.upper()} {_reset}{_w} ) from [ {_B}{_bm}{From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")}{_reset}{_w} ] to [ {_B}{_bm}{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}{_reset}{_w} ] {_reset}')        
+        print(f"{_w}Filter on :{_reset}")
         print("")
+        if ManualScope != '':                    
+            print(f'{_g}{_B}TIME: {_reset}{_w} Time Range for ( {_B}{_br} {ManualScope.upper()} {_reset}{_w} ) from [ {_B}{_bm}{From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")}{_reset}{_w} ] to [ {_B}{_bm}{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}{_reset}{_w} ] {_reset}')        
+            print("")
+        if FILTER_IP != '':            
+            print(f'{_w} IP : Including logs with ( {_B}{_bm} {FILTER_IP} {_reset} ) in IP Address')
+            print("")
+        if FILTER_URL != '':            
+            print(f'Filter on URL is {_blg} ON {_reset}{_w} Including logs with ( {_B}{_bm} {FILTER_URL} {_reset} ) in Requset URL')
+            print("")
+        if FILTER_AGENT != []:
+            print(f'Filter on Browser is {_blg} ON {_reset}{_w} including items received from one of the browsers {_B}{_bm} {FILTER_AGENT} {_reset}.')
+            print("")
+        if FILTER_CODE != []:
+            print(f'Filter on HTTP response status codes is {_blg} ON {_reset}{_w} including items received from one of the browsers {_B}{_bm} {FILTER_CODE} {_reset}.')
+            print("")
+
+
+
+
+
         print(f'{_w}-------------------------- Filter information --------------------------{_reset}')
 
 
@@ -443,25 +462,27 @@ def PrimaryMainMenuLuncher():
     elif UserInput == 'i':
         NumberInt = GetNumberofFromUser(len(Ip_counter))
         FnPrintIP(Ip_counter,NumberInt)
+        input("Press Enter to continiue ...")
     elif UserInput == 'u':
         NumberInt = GetNumberofFromUser(len(url_counter))
         PrintURL(url_counter,NumberInt)
+        input("Press Enter to continiue ...")
     elif UserInput == 'b':
         FnPrintBrowser(browser_counter)
+        input("Press Enter to continiue ...")
     elif UserInput == 'c':
         printStatusCode()
+        input("Press Enter to continiue ...")
     elif UserInput == 'a':
         NumberInt = GetNumberofFromUser(len(Unknown_Agent_counter))
         FnPrintAgent(Unknown_Agent_counter,NumberInt)
+        input("Press Enter to continiue ...")
     elif UserInput == 'f':
         FilterMenuLuncher(FilterMenu())
     elif UserInput == 'reload':    
         LoadLogFile()
         #LoadVaraiableFromLogs(logs_df)    
-        base.clearScreen()
-        Banner.ParsingLogo()    
-        printStatus()
-        PrimaryMainMenuLuncher()
+    StartHome()
 
 def FilterMenu():
     global ManualScope
@@ -911,7 +932,6 @@ def IpFilterMenu():
     #elif UserInput.strip().lower() == "":
         return UserInput.strip().lower()
 
-def 
 
     
 def AllFilterStatus(AllFilterOff = False):
@@ -1015,6 +1035,11 @@ def AnylyseUserInput(UserInput:str):
 #    a = GetCustomDate()
 
 
+def StartHome():
+    base.clearScreen()
+    Banner.ParsingLogo()    
+    printStatus()
+    PrimaryMainMenuLuncher()
 
 
 ####################################################
@@ -1052,10 +1077,5 @@ if __name__ == '__main__':
     
     LoadLogFile()
     #LoadVaraiableFromLogs(logs_df)    
-    base.clearScreen()
-    Banner.ParsingLogo()    
-    printStatus()
-    #MainMenu()
-    PrimaryMainMenuLuncher()
-
+    StartHome()
 
