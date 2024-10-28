@@ -1,4 +1,5 @@
 {
     "Log_File" : "/home/beigi/Temp/access.log",
-    "Max_Line" : 60
+    "Max_Line" : 60,
+    "ExportPath" : "/home/beigi/myApp/ParsingNginxLogs/export"
 }

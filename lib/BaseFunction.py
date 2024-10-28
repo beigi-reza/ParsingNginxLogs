@@ -503,7 +503,7 @@ def PrintMessage(messageString : str,MsgType="notif",BackgroudMsg = True,Tremina
     beginSpace = ''
     if MsgType.lower() == 'error':
       if BackgroudMsg:
-        BodyColor = _Br + _B + _r
+        BodyColor = _Br + _B + _w
       else:
         BodyColor = _B + _r      
     elif MsgType.lower() == 'warning':

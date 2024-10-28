@@ -45,6 +45,7 @@ JsonConfigFile = f"{current_directory}/config/config.json"
 jsonConfig = base.LoadJsonFile(JsonConfigFile)
 LOG_FILE  = jsonConfig["Log_File"]
 MAX_LINE = jsonConfig["Max_Line"]
+EXP_PATH = jsonConfig["ExportPath"]
 ####################################################
 
 
@@ -116,12 +117,14 @@ def ParingLogFileWithFilter():
     global url_counter    
     global Agent_counter
     global Unknown_Agent_counter
+    global All_Agent_counter
     global browser_counter
     global status_code_counter
     url_counter = Counter()
     Ip_counter = Counter()    
     Agent_counter = Counter()
     Unknown_Agent_counter = Counter()
+    All_Agent_counter = Counter()
     browser_counter = Counter()
     status_code_counter = Counter()
 
@@ -224,15 +227,17 @@ def getAgentFromLine(line,AgentFilter = []):
     if matchBrowser:
         Browser = matchBrowser.group(1)
         if AgentFilter == []:
+            All_Agent_counter[user_agent] +=1
             return Browser
         else:
             for _agent in AgentFilter:
                 if Browser.lower() in _agent:
+                    All_Agent_counter[user_agent] +=1
                     return Browser                
             else:
                 return None    
     
-    Unknown_Agent_counter[user_agent] +=1                                                
+    Unknown_Agent_counter[user_agent] +=1
     return 'unknow'
 
 def FilterByAllAgent(line,AgentFilter):
@@ -254,16 +259,11 @@ def printStatus():
 #        TimeofLog = f'{_w}Log Found From [ {_B}{_w}{From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")}{_reset}{_w} ] to [ {_B}{_w}{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}{_reset}{_w} ]{_reset}'    
 #    else:
 #        TimeofLog = f'{_w}Time Range Changed for ( {_B}{_br} {ManualScope.upper()} {_reset}{_w} ) from [ {_B}{_bm}{From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")}{_reset}{_w} ] to [ {_B}{_bm}{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}{_reset}{_w} ] {_reset}'
-
-
-
     print ("{:<30}".format(RowAnalyzed + LastSync))
     print("")
     print("{:<30} {:<30} {:<30}".format(CountIP,CountAgent,CountURL))
     print("")
     print ("{:<100}".format(TimeofLog))
-    
-    
 
     if filterStatus:
         print("")
@@ -402,6 +402,249 @@ def MainMenuIP():
         printStatus()
         MainMenu()        
 
+def ExportMenu():
+    base.clearScreen()
+    Banner.ParsingLogo()    
+    printStatus()    
+    while True:        
+        if filterStatus:
+            FilterStr = f'{_y}[ {_br}{_B} ENABLE {_reset}{_y} ]'
+        else:
+            FilterStr = f'{_y}[ {_w}Disable {_y}]'    
+        print(f"{_w}")
+        print(f"press [ {_D}{_w}enter{_N}{_w} ] for Main Menu")
+        print(f"type  [ {_D}{_w}0{_N}{_w} ] quit{_reset}")
+        print(f"      [ {_D}{_y}1{_N}{_w} ] Export Summary as text File")
+        print(f"      [ {_D}{_y}2{_N}{_w} ] Export IP (CSV)")
+        print(f"      [ {_D}{_y}3{_N}{_w} ] Export URL (CSV)")
+        print(f"      [ {_D}{_y}4{_N}{_w} ] Export Browser (CSV)")
+        print(f"      [ {_D}{_y}5{_N}{_w} ] Export Status Code (CSV)")
+        print(f"      [ {_D}{_y}6{_N}{_w} ] Export Unknown Agent (CSV)")
+        print(f"      [ {_D}{_y}7{_N}{_w} ] Export All Agent (CSV)")
+        print("")
+        UserInput = input(f"{_B}{_w}Enter Command :{_reset}")
+        #for _i in ['q','','txt','i','u','b','c','ua','aa']:
+        if UserInput.strip() == '':      
+            return ''
+        try:
+            _intUserInpt = int(UserInput) 
+            if _intUserInpt <= 7:
+                return _intUserInpt
+        except:            
+            base.PrintMessage(messageString=f'Value ({UserInput}) not valid',MsgType="error", AddLine = True, addSpace = 0)        
+        
+def ExportMenuLuncher():
+    UserInput = ExportMenu()
+    if UserInput == 0:
+        base.FnExit()
+    elif UserInput == 1:
+        ExportTextFile()
+    elif UserInput == 2:
+        ExportIpinCSV()
+    elif UserInput == 3:
+        ExportURLinCSV()
+    elif UserInput == 4:
+        ExportBrowserInCSV()
+    elif UserInput == 5:
+        ExportCodeInCSV()
+    elif UserInput == 6:
+        ExportUnknownAgentInCSV()
+    elif UserInput == 7:
+        ExportAllAgentInCSV()
+
+
+def ExportAllAgentInCSV():
+    Ordered_AllAgent = order_dict_by_value(All_Agent_counter)
+    AllAgentList = []
+    AllAgentList.append('Unknown Agent,Count')
+    for _ in Ordered_AllAgent:
+        _x = Ordered_AllAgent[_]
+        AllAgentList.append(f"{_},{_x}")
+    CreateFile(List4Save=AllAgentList,FileName='nginx_logs_Unknown_Agent',Ext='csv')
+
+
+def ExportUnknownAgentInCSV():
+    Ordered_UnknownAgent = order_dict_by_value(Unknown_Agent_counter)
+    UnknownAgentList = []
+    UnknownAgentList.append('Unknown Agent,Count')
+    for _ in Ordered_UnknownAgent:
+        _x = Ordered_UnknownAgent[_]
+        UnknownAgentList.append(f"{_},{_x}")
+    CreateFile(List4Save=UnknownAgentList,FileName='nginx_logs_Unknown_Agent',Ext='csv')
+
+def ExportIpinCSV():
+    ordered_IP = order_dict_by_value(Ip_counter)
+    IPList = []
+    IPList.append('IP,Count')
+    for _ in ordered_IP:
+        _x = ordered_IP[_]
+        IPList.append(f"{_},{_x}")
+    CreateFile(List4Save=IPList,FileName='nginx_logs_IP',Ext='csv')
+
+def ExportURLinCSV():
+    ordered_url = order_dict_by_value(url_counter)
+    UtlList = []
+    UtlList.append('URL,Count')
+    for _ in ordered_url:
+        _x = ordered_url[_]
+        UtlList.append(f"{_},{_x}")
+    CreateFile(List4Save=UtlList,FileName='nginx_logs_Url',Ext='csv')
+
+def ExportBrowserInCSV():
+    ordered_browser = order_dict_by_value(browser_counter)    
+    BrowserList = []
+    BrowserList.append('Browser,Count')
+    for _ in ordered_browser:
+        _x = ordered_browser[_]
+        BrowserList.append(f"{_},{_x}")
+    CreateFile(List4Save=BrowserList,FileName='nginx_logs_Browser',Ext='csv')
+
+def ExportCodeInCSV():
+    StatusCodeList = []
+    StatusCodeList.append('StatusCode,Count')
+    for _status_code, _count in status_code_counter.most_common():        
+        StatusCodeList.append(f"{_status_code},{_count}")
+    CreateFile(List4Save=StatusCodeList,FileName='nginx_logs_Code',Ext='csv')
+
+
+def ExportTextFile():
+    current_date = datetime.now().strftime("%Y-%m-%d_%I:%M:%S %p")
+    _RowAnalyzed = f"Row analyzed : {CountLogs}"    
+    _CountIP = f"Uniq ip detected : {len(Ip_counter)}"    
+    _CountAgent = f"Unknown agent detected : {len(Unknown_Agent_counter)}"
+    _CountURL = f"Uniq URL detected : {len(url_counter)}"    
+    _LastSync = f'{TimeofReadLogFile.strftime("%I:%M:%S %p")}'
+    _TimeofLog = f'Log Found From [ {From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")} ] to [{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}]'
+
+    TextLst= []    
+    TextLst.append(f"Nginx Parsing Logs on {current_date}")
+    TextLst.append("")
+    TextLst.append(_RowAnalyzed)    
+    TextLst.append(_CountIP)
+    TextLst.append(_CountAgent)
+    TextLst.append(_CountURL)
+    TextLst.append(_TimeofLog)    
+
+    if filterStatus:
+        TextLst.append("")
+        TextLst.append(f'-------------------------- Filter information --------------------------')
+        if ManualScope != '':                    
+            TextLst.append(f'[  TIME  ] Time Range for ( {ManualScope.upper()} ) from [ {From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")} ] to [ {To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )} ] ')                    
+        if FILTER_IP != '':            
+            TextLst.append(f'[   IP   ] Including logs with ( {FILTER_IP} ) in IP Address')            
+        if FILTER_URL != '':            
+            TextLst.append(f'[   URL  ] Filter on URL is ON Including logs with ( {FILTER_URL} ) in Requset URL')            
+        if FILTER_AGENT != []:
+            TextLst.append(f'[   Browser   ] Filter on Browser is ON including items received from one of the browsers {FILTER_AGENT}.')        
+        if FILTER_CODE != []:
+            TextLst.append(f'[   Status Code   ] Filter on HTTP response status codes is ON including items received from one of the browsers {FILTER_CODE} .')            
+        TextLst.append(f'-------------------------- Filter information --------------------------')
+        TextLst.append("")        
+
+
+    ######  Add IP List
+
+    ordered_IP = order_dict_by_value(Ip_counter)
+    _counterNo = 1
+    TextLst.append("")
+    TextLst.append("List of IP :")
+    TextLst.append("")
+    TextLst.append("no /IP / Count ")    
+    TextLst.append("")
+    for _ in ordered_IP :
+        if _counterNo <= MAX_LINE: 
+            TextLst.append("{:<5} {:<20} {:<10}".format(str(_counterNo),_,str(ordered_IP[_])))	
+            _counterNo += 1
+        else:
+            break	        
+
+    ######  Add URL
+
+    ordered_url = order_dict_by_value(url_counter)
+    _counterNo = 1
+    TextLst.append("")
+    TextLst.append("URLs :")
+    TextLst.append("")    
+    TextLst.append("No. / Count / URL ")	
+    TextLst.append("")
+    for _ in ordered_url :
+        if _counterNo <= MAX_LINE:         
+            TextLst.append(f"{str(_counterNo)}    {str(ordered_url[_])}      {_} ")
+            _counterNo += 1
+        else:
+            break	        
+
+    ######  Add browser
+
+    ordered_browser = order_dict_by_value(browser_counter)    
+    TextLst.append("")
+    TextLst.append("Browsers :")
+    TextLst.append("")
+    TextLst.append(f"Browser   /   Count")	
+    TextLst.append("")
+    for _ in ordered_browser :
+        TextLst.append(f"{_}: {ordered_browser[_]}")
+
+    ##### status code
+    TextLst.append("")
+    TextLst.append("Status Code :")
+    TextLst.append("")
+    for _status_code, _count in status_code_counter.most_common():        
+        occurrencesMSg = "occurrences"
+        if _status_code in All_NginxStatusCode:            
+            occurrencesMSg = f"expands by Nginx"        
+        TextLst.append(f"Code [ {_status_code} ] : {_count} {occurrencesMSg}")
+
+    ######  Add Unknown_Agent
+
+
+    ordered_Unknown_Agent = order_dict_by_value(Unknown_Agent_counter)
+    _counterNo = 1
+    TextLst.append("")
+    TextLst.append("Unknown Agent :")
+    TextLst.append("")
+    TextLst.append(f'No / Count / Agent ')	
+    TextLst.append("")
+    for _ in ordered_Unknown_Agent :
+        if _counterNo <= MAX_LINE:         
+            TextLst.append(f"{str(_counterNo)}    {str(ordered_Unknown_Agent[_])}      {_} ")
+            _counterNo += 1
+        else:
+            break	        
+    CreateFile(List4Save=TextLst,FileName='nginx_Parsing_logs',Ext='txt')
+    #### Create File
+#    try:
+#        with open(FilePath, 'w') as file:        
+#            for _ in TextLst:
+#                file.write("\n"+_)
+#        print(f"File successfully created at: {FilePath}")
+#    except Exception as e:
+#        print(f"An error occurred: {e}")        
+
+def CreateFile(List4Save:list,FileName:str,Ext:str):
+    current_date = datetime.now().strftime("%Y-%m-%d_%I:%M:%S %p")
+    file_name = f"{FileName}_{current_date}.{Ext}"
+    FilePath = os.path.join(EXP_PATH,file_name)
+    writeFile = False
+    try:
+        with open(FilePath, 'w') as file:        
+            for _ in List4Save:
+                file.write("\n"+_)
+        writeFile = True                
+    except:
+        writeFile = False        
+
+    if writeFile:
+        print("")
+        print(f"{_B}{_w}File [{_g}{file_name}{_w}] successfully created on [{_g}{EXP_PATH}{_w}].{_reset}")
+        print("")
+        input('Press enter to continue ...')
+    else:
+        print("")
+        print(f"{_B}{_r}Cannnot Create File, Something went wrong{_reset}")            
+        print("")
+        input('Press enter to continue ...')
+
 def MainMenuAgent():
     print(f"{_w}")
     print(f"type [ {_D}{_w}q{_N}{_w}     ] quit{_reset}")
@@ -435,53 +678,61 @@ def MainMenu():
         
     while True:        
         print(f"{_w}")
-        print(f"type [ {_D}{_w}q{_N}{_w} ] quit{_reset}")        
-        print(f"     [ {_c}i{_w} ] {_c}list of IP{_reset}")
-        print(f"     [ {_c}u{_w} ] {_c}list of url{_reset}")
-        print(f"     [ {_c}b{_w} ] {_c}list of Browser{_reset}")
-        print(f"     [ {_c}c{_w} ] {_c}list of Status Code{_reset}")
-        print(f"     [ {_c}a{_w} ] {_c}list of Unknown Agent{_reset}")
-        print(f"     [ {_y}f{_w} ] {_y}Filter/s - {FilterStr}{_reset}")        
-        print(f"     [ {_r}reload{_w} ] {_r}Reload Log file{_reset}")
-    
-    
+        print(f"type [ {_D}{_w}0{_N}{_w} ] quit{_reset}")        
+        print(f"     [ {_c}1{_w} ] {_c}list of IP{_reset}")
+        print(f"     [ {_c}2{_w} ] {_c}list of url{_reset}")
+        print(f"     [ {_c}3{_w} ] {_c}list of Browser{_reset}")
+        print(f"     [ {_c}4{_w} ] {_c}list of Status Code{_reset}")
+        print(f"     [ {_c}5{_w} ] {_c}list of Unknown Agent{_reset}")
+        print(f"     [ {_y}6{_w} ] {_y}Filter/s - {FilterStr}{_reset}")        
+        print(f"     [ {_r}7{_w} ] {_r}Reload Log file{_reset}")
+        print(f"     [ {_b}8{_w} ] {_b}Export to File{_reset}")
+
         print("")
         UserInput = input(f"{_B}{_w}Enter Command :{_reset}")
-        if UserInput.strip() == '':
-            UserInput = 'i'
-        for _i in ['q','i','u','b','c','a','f','reload']:
-            if _i == UserInput.strip().lower():
-                return _i
-        
+
+
+#        for _i in ['q','i','u','b','c','a','f','reload','exp']:
+#            if _i == UserInput.strip().lower():
+#                return _i
+        try:
+            _intUserInpt = int(UserInput) 
+            if _intUserInpt <= 8:
+                return _intUserInpt
+        except:            
+            base.PrintMessage(messageString=f'Value ({UserInput}) not valid',MsgType="error", AddLine = True, addSpace = 0)        
         
     
 def PrimaryMainMenuLuncher():
     UserInput = MainMenu()
-    if UserInput == 'q':
+    if UserInput == 0:
         base.FnExit()
-    elif UserInput == 'i':
+    elif UserInput == 1:
         NumberInt = GetNumberofFromUser(len(Ip_counter))
         FnPrintIP(Ip_counter,NumberInt)
         input("Press Enter to continiue ...")
-    elif UserInput == 'u':
+    elif UserInput == 2:
         NumberInt = GetNumberofFromUser(len(url_counter))
         PrintURL(url_counter,NumberInt)
         input("Press Enter to continiue ...")
-    elif UserInput == 'b':
+    elif UserInput == 3:
         FnPrintBrowser(browser_counter)
         input("Press Enter to continiue ...")
-    elif UserInput == 'c':
+    elif UserInput == 4:
         printStatusCode()
         input("Press Enter to continiue ...")
-    elif UserInput == 'a':
+    elif UserInput == 5:
         NumberInt = GetNumberofFromUser(len(Unknown_Agent_counter))
         FnPrintAgent(Unknown_Agent_counter,NumberInt)
         input("Press Enter to continiue ...")
-    elif UserInput == 'f':
+    elif UserInput == 6:
         FilterMenuLuncher(FilterMenu())
-    elif UserInput == 'reload':    
+    elif UserInput == 7:    
         LoadLogFile()
         #LoadVaraiableFromLogs(logs_df)    
+    elif UserInput == 8:
+        ExportMenuLuncher()
+
     StartHome()
 
 def FilterMenu():
@@ -525,22 +776,33 @@ def FilterMenu():
             UnknowStr = f' is {_bb} ON {_reset}{_w} : {_y}{FILTER_UNKNOW_AGENT}'
             
         print(f"{_w}")
-        print(f"type [ {_D}{_w}q{_N}{_w}     ] quit{_reset}")        
-        print(f"     [ {_D}{_w}Enter{_N}{_w} ] for back to main menu{_reset}")            
-        print(f"     [ {_D}{_w}off{_N}{_w}   ] All Filter OFF{_reset}")        
-        print(f"     [ {_b}i{_w} ] {_b} Filter on IP{StrIP}{_reset}")
-        print(f"     [ {_b}u{_w} ] {_b} Filter on url{StrURL}{_reset}")
-        print(f"     [ {_b}b{_w} ] {_b} Filter on Browser{BrwsStr}{_reset}")
-        print(f"     [ {_b}c{_w} ] {_b} Filter on Status Code{CodeStr}{_reset}")
-        print(f"     [ {_b}a{_w} ] {_b} Filter on Agent{UnknowStr}{_reset}")        
-        print(f"     [ {_b}t{_w} ] {_b} Filter on Time range{StrTimeRange} {_reset}")        
-        
+        print(f"press [ {_D}{_w}Enter{_N}{_w} ] for back to main menu{_reset}")            
+        print(f"type  [ {_D}{_w}0{_N}{_w} ] quit{_reset}")                        
+        print(f"      [ {_b}1{_w} ] {_b} Filter on IP{StrIP}{_reset}")
+        print(f"      [ {_b}2{_w} ] {_b} Filter on url{StrURL}{_reset}")
+        print(f"      [ {_b}3{_w} ] {_b} Filter on Browser{BrwsStr}{_reset}")
+        print(f"      [ {_b}4{_w} ] {_b} Filter on Status Code{CodeStr}{_reset}")
+        print(f"      [ {_b}5{_w} ] {_b} Filter on Unknow Agent{UnknowStr}{_reset}")        
+        print(f"      [ {_b}6{_w} ] {_b} Filter on Time range{StrTimeRange} {_reset}")        
+        print(f"      [ {_r}7{_w} ] {_b} All Filter Set OFF{_reset}")        
     
         print("")
         UserInput = input(f"{_B}{_w}Enter Command :{_reset}")
-        for _i in ['q','i','u','b','c','a','t','off','']:
-            if _i == UserInput.strip().lower():
-                return _i.lower()
+        
+        if UserInput.strip() == '':      
+            return ''
+        try:            
+            _intUserInpt = int(UserInput) 
+            if _intUserInpt <= 7:
+                return _intUserInpt
+        except:            
+            base.PrintMessage(messageString=f'Value ({UserInput}) not valid',MsgType="error", AddLine = True, addSpace = 0)        
+
+        
+        
+        #for _i in ['q','i','u','b','c','a','t','off','']:
+        #    if _i == UserInput.strip().lower():
+        #        return _i.lower()
         
 def FilterMenuLuncher(UserInput):        
     global ManualScope
@@ -549,9 +811,9 @@ def FilterMenuLuncher(UserInput):
     global FILTER_CODE
     global FILTER_UNKNOW_AGENT
     global filterStatus
-    if UserInput == 'q':
+    if UserInput == 0:
         base.FnExit()
-    elif UserInput == 'i':
+    elif UserInput == 1: ############## FILTER IP
         base.clearScreen()
         Banner.ParsingLogo()
         IP_Filter = IpFilterMenu()        
@@ -562,7 +824,7 @@ def FilterMenuLuncher(UserInput):
         base.clearScreen()
         Banner.ParsingLogo()
         FilterMenuLuncher(FilterMenu())                
-    elif UserInput == 'u':
+    elif UserInput == 2: ############## FILTER URL
         base.clearScreen()
         Banner.ParsingLogo()
         Url_Filter = UrlFilterMenu()
@@ -573,18 +835,16 @@ def FilterMenuLuncher(UserInput):
         base.clearScreen()
         Banner.ParsingLogo()
         FilterMenuLuncher(FilterMenu())    
-    elif UserInput == 'b':
+    elif UserInput == 3: ############## FILTER BRWOSER
         BrowserFilterMenuLuncher(BrowserFilterMenu())
-    elif UserInput == 'c':
+    elif UserInput == 4: ############## FILTER CODE
         Code_Filter = StatusCodeFilterMenu()
         if Code_Filter == 'off':
             FILTER_CODE = []        
-
         base.clearScreen()
         Banner.ParsingLogo()
-        FilterMenuLuncher(FilterMenu())    
-            
-    elif UserInput == 'a':
+        FilterMenuLuncher(FilterMenu())                
+    elif UserInput == 5: ############## FILTER UnKnow AGENT
         base.clearScreen()
         Banner.ParsingLogo()
         UnkhowAgent = UnknowAgentMenuFilter()        
@@ -595,7 +855,7 @@ def FilterMenuLuncher(UserInput):
         base.clearScreen()
         Banner.ParsingLogo()
         FilterMenuLuncher(FilterMenu())    
-    elif UserInput == 't':
+    elif UserInput == 6: ############## FILTER TIME
         base.clearScreen()
         Banner.ParsingLogo()
         global NEW_Date
@@ -609,7 +869,7 @@ def FilterMenuLuncher(UserInput):
         base.clearScreen()
         Banner.ParsingLogo()        
         FilterMenuLuncher(FilterMenu())
-    elif UserInput.strip().lower() == 'off':
+    elif UserInput == 7: ############## FILTER IS OFFFFFFF
         base.clearScreen()
         Banner.ParsingLogo()
         filterStatus = False
