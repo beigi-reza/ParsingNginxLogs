@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 import Banner
 from collections import OrderedDict,Counter
 from datetime import datetime
+import sys
 
 #from collections import Counter
 
@@ -116,14 +117,14 @@ def ParingLogFileWithFilter():
     global Ip_counter
     global url_counter    
     global Agent_counter
-    global Unknown_Agent_counter
+    global Unknown_Agent_counter    
     global All_Agent_counter
     global browser_counter
     global status_code_counter
     url_counter = Counter()
     Ip_counter = Counter()    
-    Agent_counter = Counter()
-    Unknown_Agent_counter = Counter()
+    Agent_counter = Counter()    
+    Unknown_Agent_counter= Counter()
     All_Agent_counter = Counter()
     browser_counter = Counter()
     status_code_counter = Counter()
@@ -161,8 +162,8 @@ def ParingLogFileWithFilter():
                     AddThisLine = False                
                     
                 if FILTER_UNKNOW_AGENT != '':
-                    AllAgent = FilterByAllAgent(line,FILTER_UNKNOW_AGENT)
-                    if AllAgent == None:
+                    UnknowAgentName = FilterByAgent(line,FILTER_UNKNOW_AGENT)
+                    if UnknowAgentName == None:
                         AddThisLine = False
                         
                 StatusCode = GetCodeFromLine(line,FILTER_CODE)
@@ -173,9 +174,11 @@ def ParingLogFileWithFilter():
                     Ip_counter[ip_address] +=1
                     url_counter[url] += 1
                     status_code_counter[StatusCode] += 1
+                    browser_counter[agent] += 1
                     if agent != 'unknow':
                         browser_counter[agent] += 1
-                    #Unknown_Agent_counter[AllAgent] += 1
+                    else:
+                        Unknown_Agent_counter[UnknowAgentName] += 1
     return url_counter            
 
 
@@ -193,34 +196,36 @@ def GetCodeFromLine(line,CodeFilter = []):
         return None        
 
 
-def GetIpFromLine(line,IpFilter = ''):
+def GetIpFromLine(line,IpFilter = []):
     IP_pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
     IpMatch = re.search(IP_pattern, line)            
     if IpMatch: 
-        ip_address = IpMatch.group(1)
-        if IpFilter == '':
+        ip_address = IpMatch.group(1)        
+        if IpFilter == []:
             return ip_address
-        else:            
-            FindIp = re.findall(f"^{IpFilter}",ip_address)
-            if FindIp:
-                return ip_address
-            else:
-                return None
-    return None        
+        else:
+            for _Ip in IpFilter:
+                FindIp = re.findall(f"^{_Ip}",ip_address)                
+                if FindIp:
+                    return ip_address            
+        return None        
 
-def GetUrlFromLine(line,URLFilter = ''):
+def GetUrlFromLine(line,URLFilter = []):##
     url_pattern = re.compile(r'"GET\s(\/[^\s]*)')
     matchURL = url_pattern.search(line)
     if matchURL:        
         url = matchURL.group(1)  # Get the matched URL
-        if URLFilter == '':
+        if URLFilter == []:
             return url
-        else:            
-            if URLFilter in line:            
-                return url
-    return None
+        else:
+            for _Url in URLFilter:            
+                if _Url in line:            
+                    return url                
+        return None
 
 def getAgentFromLine(line,AgentFilter = []):
+    global UNKNOW_AGENT_Str
+    UNKNOW_AGENT_Str = ""
     browser_regex = r"(Chrome|Firefox|Safari|Opera|Edge|Trident)"
     user_agent = line.split('"')[-4]
     matchBrowser = re.search(browser_regex, user_agent)    
@@ -236,17 +241,24 @@ def getAgentFromLine(line,AgentFilter = []):
                     return Browser                
             else:
                 return None    
-    
-    Unknown_Agent_counter[user_agent] +=1
+
+    #Unknown_Agent_counter_all[user_agent] +=1
+    UNKNOW_AGENT_Str = user_agent
     return 'unknow'
 
-def FilterByAllAgent(line,AgentFilter):
-    if AgentFilter != "":
-        agentName = line.split('"')[-4]    
-        FindAgent = re.findall(f"^{AgentFilter}",agentName)
-        if FindAgent:
-            return agentName        
+def FilterByAgent(line,AgentFilter):
+    #if AgentFilter != []:
+    if UNKNOW_AGENT_Str != "":    
+        agentName = line.split('"')[-4]            
+        if AgentFilter == []:
+            return agentName
+        else:
+            for _ in AgentFilter:
+                FindAgent = re.findall(f"^{_}",agentName)
+                if FindAgent:
+                    return agentName        
     return None 
+
 
 def printStatus():    
     RowAnalyzed = f"{_B}{_b}Row analyzed {_bb} {CountLogs} {_reset}"    
@@ -267,30 +279,26 @@ def printStatus():
 
     if filterStatus:
         print("")
-        print(f'{_w}-------------------------- Filter information --------------------------{_reset}')
-        print("")
-        print(f"{_w}Filter on :{_reset}")
+        print(f'{_w}-------------------------- Filter information --------------------------{_reset}')    
         print("")
         if ManualScope != '':                    
-            print(f'{_g}{_B}TIME: {_reset}{_w} Time Range for ( {_B}{_br} {ManualScope.upper()} {_reset}{_w} ) from [ {_B}{_bm}{From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")}{_reset}{_w} ] to [ {_B}{_bm}{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}{_reset}{_w} ] {_reset}')        
+            print(f'{_bbw} TIME {_reset}{_w} : Time Range for ( {_B}{_y} {ManualScope.upper()} {_reset}{_w} ) from [ {_B}{_y}{From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")}{_reset}{_w} ] to [ {_B}{_y}{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}{_reset}{_w} ] {_reset}')                    
             print("")
-        if FILTER_IP != '':            
-            print(f'{_w} IP : Including logs with ( {_B}{_bm} {FILTER_IP} {_reset} ) in IP Address')
+        if FILTER_IP != []:            
+            print(f'{_bbw} IP {_reset}{_w} : including IPs ( {_B}{_y} {FILTER_IP} {_reset} )')
             print("")
-        if FILTER_URL != '':            
-            print(f'Filter on URL is {_blg} ON {_reset}{_w} Including logs with ( {_B}{_bm} {FILTER_URL} {_reset} ) in Requset URL')
+        if FILTER_URL != []:            
+            print(f'{_bbw} URL {_reset}{_w} : including Urls ( {_B}{_y} {FILTER_URL} {_reset} )')            
             print("")
         if FILTER_AGENT != []:
-            print(f'Filter on Browser is {_blg} ON {_reset}{_w} including items received from one of the browsers {_B}{_bm} {FILTER_AGENT} {_reset}.')
+            print(f'{_bbw} BROWSER {_reset}{_w} : including browsers ( {_B}{_y} {FILTER_AGENT} {_reset} )')            
             print("")
         if FILTER_CODE != []:
-            print(f'Filter on HTTP response status codes is {_blg} ON {_reset}{_w} including items received from one of the browsers {_B}{_bm} {FILTER_CODE} {_reset}.')
+            print(f'{_bbw} STATUS CODE {_reset}{_w} : including status code ( {_B}{_y} {FILTER_CODE} {_reset} )')                        
             print("")
-
-
-
-
-
+        if FILTER_UNKNOW_AGENT != []:
+            print(f'{_bbw} UNKNOW AGENT {_reset}{_w} : including Unknow Agent ( {_B}{_y} {FILTER_UNKNOW_AGENT} {_reset} )')                                    
+            print("")
         print(f'{_w}-------------------------- Filter information --------------------------{_reset}')
 
 
@@ -737,25 +745,27 @@ def PrimaryMainMenuLuncher():
 
 def FilterMenu():
     global ManualScope
+    global FILTER_IP
     base.clearScreen()
     Banner.ParsingLogo()    
     while True:
         if AllFilterStatus():
-            print(f'{_r}Filter is {_w}Enabled{_reset}')            
+            print("")
+            print(f'{_B}{_bm }  [  Filter is Enabled  ]  {_reset}')            
         else:    
-            print(f' {_B}{_bb}All Filter is OFF{_reset}')            
+            print(f'{_B}{_w}All Filter is OFF{_reset}')            
 
         if ManualScope == '':
             StrTimeRange = f' is {_w}OFF{_reset}' 
         else:
             StrTimeRange = f' is {_bb} ON {_reset}{_w} : {_y}{ManualScope}'         
         
-        if FILTER_IP == '':
+        if FILTER_IP == []:
             StrIP = f' is {_w}OFF{_reset}' 
         else:            
             StrIP = f' is {_bb} ON {_reset}{_w} : {_y}{FILTER_IP}' 
             
-        if FILTER_URL == '':
+        if FILTER_URL == []:
             StrURL = f' is {_w}OFF{_reset}' 
         else:
             StrURL = f' is {_bb} ON {_reset}{_w} : {_y}{FILTER_URL}' 
@@ -770,7 +780,7 @@ def FilterMenu():
         else:
             CodeStr = f' is {_bb} ON {_reset}{_w} : {_y}{FILTER_CODE}'
         
-        if FILTER_UNKNOW_AGENT == '':
+        if FILTER_UNKNOW_AGENT == []:
             UnknowStr = f' is {_w}OFF{_reset}'
         else:
             UnknowStr = f' is {_bb} ON {_reset}{_w} : {_y}{FILTER_UNKNOW_AGENT}'
@@ -814,24 +824,16 @@ def FilterMenuLuncher(UserInput):
     if UserInput == 0:
         base.FnExit()
     elif UserInput == 1: ############## FILTER IP
-        base.clearScreen()
-        Banner.ParsingLogo()
-        IP_Filter = IpFilterMenu()        
-        if IP_Filter == 'off':
-            FILTER_IP = ''    
-        elif IP_Filter != '':
-            FILTER_IP = IP_Filter
+        IpFilterMenuLuncher()
+#        if IP_Filter == 'off':
+#            FILTER_IP = []
+#        elif IP_Filter != []:
+#            FILTER_IP = IP_Filter
         base.clearScreen()
         Banner.ParsingLogo()
         FilterMenuLuncher(FilterMenu())                
     elif UserInput == 2: ############## FILTER URL
-        base.clearScreen()
-        Banner.ParsingLogo()
-        Url_Filter = UrlFilterMenu()
-        if Url_Filter == 'off':
-            FILTER_URL = ''
-        else:
-            FILTER_URL = Url_Filter
+        UrlFilterMenuLuncher()
         base.clearScreen()
         Banner.ParsingLogo()
         FilterMenuLuncher(FilterMenu())    
@@ -845,13 +847,7 @@ def FilterMenuLuncher(UserInput):
         Banner.ParsingLogo()
         FilterMenuLuncher(FilterMenu())                
     elif UserInput == 5: ############## FILTER UnKnow AGENT
-        base.clearScreen()
-        Banner.ParsingLogo()
-        UnkhowAgent = UnknowAgentMenuFilter()        
-        if UnkhowAgent == 'off':
-            FILTER_UNKNOW_AGENT = ''
-        else:
-            FILTER_UNKNOW_AGENT = UnkhowAgent
+        UnknowAgentMenuFilterLuncher()                
         base.clearScreen()
         Banner.ParsingLogo()
         FilterMenuLuncher(FilterMenu())    
@@ -1012,8 +1008,6 @@ def BrowserFilterMenu():
             elif x.lower() == 'trident':
                 Trident_Active = f' - {_bbw} ON {_reset}'
 
-
-
                 
         print(f"{_w}")
         print(f"type [ {_D}{_w}q{_N}{_w}     ] quit{_reset}")        
@@ -1157,42 +1151,137 @@ def ConvertDateinLog2RealTime(DateMatch):
 
 
 def UrlFilterMenu():
+    base.clearScreen()
+    Banner.ParsingLogo()    
+    if FILTER_URL != []:
+        print("")
+        print(f"{_B}{_w}Filter for URLs is Enabled{_reset}")            
+        print(f"{_B}{_w}List of URLs:{_reset}")            
+        for _ in FILTER_URL:
+            print(f"{_B}{_w}            [ {_bm}{_}{_reset}{_w} ]{_reset}")            
+        
+        print(f"{_B}{_g}To remove a URL from the filter list, re-warp it. {_reset}")                        
+        print("")
+
     print(f"{_w}type  [ {_N}{_w}q{_reset}{_w}     ] for quit{_reset}")        
     print(f"{_w}      [ {_N}{_w}enter{_reset}{_w} ] for back{_reset}")                    
     print(f"{_w}      [ {_N}{_w}off{_reset}{_w} ] To disable the filter on URL {_reset}")                    
     UserInput = input(f'{_B}{_w}Enter URL or part of it: ')
-    if UserInput.strip().lower() == "q":
-        base.FnExit()
-    else:    
-    #elif UserInput.strip().lower() == "":
-        return UserInput.strip().lower()
+    return UserInput.strip().lower()
+
+def UrlFilterMenuLuncher():
+    global FILTER_URL
+    while True:
+        UrlInput = UrlFilterMenu()
+        if UrlInput == 'q':
+            base.FnExit()
+        elif UrlInput == 'off':
+            FILTER_URL = []
+        elif UrlInput == '':            
+            break        
+        removeItem = False
+        if FILTER_URL != []:
+            for x in FILTER_URL:            
+                if x.lower() == UrlInput:
+                    removeItem = True
+                    break
+        if removeItem:
+            FILTER_URL.remove(x)
+        else:
+            if UrlInput != 'off':
+                FILTER_URL.append(UrlInput)    
+
+
 
 def UnknowAgentMenuFilter():
-    print(f"{_w}type  [ {_N}{_w}q{_reset}{_w}     ] for quit{_reset}")        
-    print(f"{_w}      [ {_N}{_w}enter{_reset}{_w} ] for back{_reset}")                    
+    base.clearScreen()
+    Banner.ParsingLogo()    
+    if FILTER_UNKNOW_AGENT != []:
+        print("")
+        print(f"{_B}{_w}Filter for Unknow agent is Enabled{_reset}")            
+        print(f"{_B}{_w}List of Agent:{_reset}")            
+        for _ in FILTER_UNKNOW_AGENT:
+            print(f"{_B}{_w}            [ {_bm}{_}{_reset}{_w} ]{_reset}")            
+        
+        print(f"{_B}{_g}To remove an Agent from the filter list, re-warp it. {_reset}")                        
+        print("")
+
+    print(f"{_w}Press [ {_N}{_w}enter{_reset}{_w} ] for back{_reset}")                    
+    print(f"{_w}type  [ {_N}{_w}q{_reset}{_w}     ] for quit{_reset}")            
     print(f"{_w}      [ {_N}{_w}off{_reset}{_w} ] To disable the filter on Unknow Agent {_reset}")                    
     UserInput = input(f'{_B}{_w}Enter Unknow Agent or part of it: ')
-    if UserInput.strip().lower() == "q":
-        base.FnExit()
-    else:    
-    #elif UserInput.strip().lower() == "":
-        return UserInput.strip().lower()
+    return UserInput.strip().lower()
 
 
-def IpFilterMenu():
-    print(f"{_w}type  [ {_N}{_w}q{_reset}{_w}     ] for quit{_reset}")        
-    print(f"{_w}      [ {_N}{_w}enter{_reset}{_w} ] for back{_reset}")                    
+def UnknowAgentMenuFilterLuncher():
+    global FILTER_UNKNOW_AGENT
+    while True:
+        AgentInput = UnknowAgentMenuFilter()
+        if AgentInput == 'q':
+            base.FnExit()
+        elif AgentInput == 'off':
+            FILTER_UNKNOW_AGENT = []
+        elif AgentInput == '':            
+            break        
+        removeItem = False
+        if FILTER_UNKNOW_AGENT != []:
+            for x in FILTER_UNKNOW_AGENT:            
+                if x.lower() == AgentInput:
+                    removeItem = True
+                    break
+        if removeItem:
+            FILTER_UNKNOW_AGENT.remove(x)
+        else:
+            if AgentInput != 'off':
+                FILTER_UNKNOW_AGENT.append(AgentInput)    
+
+def IpFilterMenu():    
+    base.clearScreen()
+    Banner.ParsingLogo()    
+    if FILTER_IP != []:
+        print("")
+        print(f"{_B}{_w}Filter for IPs is Enabled{_reset}")            
+        print(f"{_B}{_w}List of Ips:{_reset}")            
+        for _ in FILTER_IP:
+            print(f"{_B}{_w}            [ {_bm}{_}{_reset}{_w} ]{_reset}")            
+        
+        print(f"{_B}{_g}To remove an IP from the filter list, re-warp it. {_reset}")                        
+        print("")
+    print(f"{_w}Press [ {_N}{_w}enter{_reset}{_w} ] for back{_reset}")                    
+    print(f"{_w}Type  [ {_N}{_w}q{_reset}{_w}     ] for quit{_reset}")            
     print(f"{_w}      [ {_N}{_w}off{_reset}{_w} ] To disable the filter on IP Address {_reset}")                    
     print(f"{_w}eg.   [ {_y}192.168.100.10{_w} ]{_b} To filter a specific IP Address{_reset}")    
     print(f"{_w}      [ {_y}192.168{_w} ]{_b} To filter a range of IP Address{_reset}")
+    print("")
     UserInput = input(f'{_B}{_w}Enter IP or a part of it (starts with it) : ')
-    if UserInput.strip().lower() == "q":
-        base.FnExit()
-    else:    
-    #elif UserInput.strip().lower() == "":
-        return UserInput.strip().lower()
+    return UserInput.strip().lower()
+    
 
 
+def IpFilterMenuLuncher():
+    global FILTER_IP     
+    while True:
+        IpInput = IpFilterMenu()
+        if IpInput == 'q':
+            base.FnExit()
+        elif IpInput == 'off':
+            FILTER_IP = []
+        elif IpInput == '':            
+            break        
+        removeItem = False
+        if FILTER_IP != []:
+            for x in FILTER_IP:            
+                if x.lower() == IpInput:
+                    removeItem = True
+                    break
+        if removeItem:
+            FILTER_IP.remove(x)
+        else:
+            if IpInput != 'off':
+                FILTER_IP.append(IpInput)    
+        #FILTER_AGENT = tuple(TempFilterList)
+
+        
     
 def AllFilterStatus(AllFilterOff = False):
     global filterStatus
@@ -1204,24 +1293,24 @@ def AllFilterStatus(AllFilterOff = False):
     global ManualScope
     
     if AllFilterOff:
-        FILTER_IP = ''
-        FILTER_URL = ''
+        FILTER_IP = []
+        FILTER_URL = []
         FILTER_AGENT = []
         FILTER_CODE = []
         ManualScope = ''
-        FILTER_UNKNOW_AGENT = ''        
+        FILTER_UNKNOW_AGENT = []       
     _filterStatus = False
     if ManualScope != '':
         _filterStatus = True
-    if FILTER_IP != '':
+    if FILTER_IP != []:
         _filterStatus = True
-    if FILTER_URL != '':
+    if FILTER_URL != []:
         _filterStatus = True
     if FILTER_AGENT != []:
         _filterStatus = True
     if FILTER_CODE != []:
         _filterStatus = True
-    if FILTER_UNKNOW_AGENT != '':
+    if FILTER_UNKNOW_AGENT != []:
         _filterStatus = True
     filterStatus = _filterStatus
     
@@ -1322,9 +1411,10 @@ if __name__ == '__main__':
         
     filterStatus = False
     ManualScope = '' 
-    FILTER_IP = ''
-    FILTER_URL = ''
-    FILTER_UNKNOW_AGENT = ''
+    UNKNOW_AGENT_Str = ''
+    FILTER_IP = []
+    FILTER_URL = []
+    FILTER_UNKNOW_AGENT = []
     FILTER_AGENT = []
     FILTER_CODE = []    
     
@@ -1335,7 +1425,12 @@ if __name__ == '__main__':
     Code_5xx = []
     Code_4xx_nginx = []
     
-    LoadLogFile()
-    #LoadVaraiableFromLogs(logs_df)    
-    StartHome()
+
+    #sys.argv.append("a")
+    
+    if len(sys.argv) == 1:
+        LoadLogFile()
+        StartHome()
+    else:
+        print("---------")    
 
