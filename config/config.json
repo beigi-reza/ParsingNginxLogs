@@ -1,5 +1,13 @@
 {
     "Log_File" : "/home/beigi/Temp/access.log",
     "Max_Line" : 60,
-    "ExportPath" : "/home/beigi/myApp/ParsingNginxLogs/export"
+    "ExportPath" : "/home/beigi/myApp/ParsingNginxLogs/export",
+    "Filter" : {
+        "ip" : [],
+        "url" : ["/en"],
+        "Browser" : [],
+        "Status_Code" : [],
+        "unknow_agent" : [],
+        "time" : ""
+    }
 }

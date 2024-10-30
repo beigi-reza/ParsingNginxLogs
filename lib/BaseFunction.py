@@ -112,7 +112,7 @@ def CheckExist(path,FileOrDir, title,Verbus):
           print(Style.BRIGHT + Fore.WHITE + "If the path is correct, for create run this Comand [ " + Fore.CYAN + "mkdir -p {}".format(path) + Fore.WHITE + " ] " + Style.RESET_ALL )
        return False
 
-def GetValue(InputDict:dict,*Key,verbus = True):    
+def GetValue(InputDict:dict,*Key,verbus = True,ReturnValueForNone = None):
   if len(Key) == 1:
      try:
        Value = InputDict[Key[0]]        
@@ -120,9 +120,9 @@ def GetValue(InputDict:dict,*Key,verbus = True):
        if verbus:    
           print(Style.BRIGHT + Back.RED+ Fore.WHITE + "Value (({})) Not Found / GetValue Function in BaseFunction.py".format(Key) + Style.RESET_ALL)
           input(Style.BRIGHT + Fore.WHITE + "Press Any Key to ... ")
-          return None
+          return ReturnValueForNone
        else:
-         return None  
+         return ReturnValueForNone  
      return Value
   elif len(Key) == 2:
      try:
@@ -131,9 +131,9 @@ def GetValue(InputDict:dict,*Key,verbus = True):
        if verbus:    
           print(Style.BRIGHT + Back.RED+ Fore.WHITE + "Value (({})) Not Found / GetValue Function in BaseFunction.py".format(Key) + Style.RESET_ALL)
           input(Style.BRIGHT + Fore.WHITE + "Press Any Key to ... ")
-          return None
+          return ReturnValueForNone
        else:
-         return None  
+         return ReturnValueForNone  
      return Value
   elif len(Key) == 3:
      try:
@@ -142,9 +142,9 @@ def GetValue(InputDict:dict,*Key,verbus = True):
        if verbus:    
           print(Style.BRIGHT + Back.RED+ Fore.WHITE + "Value (({})) Not Found / GetValue Function in BaseFunction.py".format(Key) + Style.RESET_ALL)
           input(Style.BRIGHT + Fore.WHITE + "Press Any Key to ... ")
-          return None
+          return ReturnValueForNone
        else:
-         return None  
+         return ReturnValueForNone  
      return Value
   elif len(Key) == 4:
      try:       
@@ -153,9 +153,9 @@ def GetValue(InputDict:dict,*Key,verbus = True):
        if verbus:    
           print(Style.BRIGHT + Back.RED+ Fore.WHITE + "Value (({})) Not Found / GetValue Function in BaseFunction.py".format(Key) + Style.RESET_ALL)
           input(Style.BRIGHT + Fore.WHITE + "Press Any Key to ... ")
-          return None
+          return ReturnValueForNone
        else:
-         return None  
+         return ReturnValueForNone  
      return Value
   elif len(Key) == 5:
      try:       
@@ -164,9 +164,9 @@ def GetValue(InputDict:dict,*Key,verbus = True):
        if verbus:    
           print(Style.BRIGHT + Back.RED+ Fore.WHITE + "Value (({})) Not Found / GetValue Function in BaseFunction.py".format(Key) + Style.RESET_ALL)
           input(Style.BRIGHT + Fore.WHITE + "Press Any Key to ... ")
-          return None
+          return ReturnValueForNone
        else:
-         return None  
+         return ReturnValueForNone  
      return Value
   elif len(Key) == 6:
      try:       
@@ -175,9 +175,9 @@ def GetValue(InputDict:dict,*Key,verbus = True):
        if verbus:    
           print(Style.BRIGHT + Back.RED+ Fore.WHITE + "Value (({})) Not Found / GetValue Function in BaseFunction.py".format(Key) + Style.RESET_ALL)
           input(Style.BRIGHT + Fore.WHITE + "Press Any Key to ... ")
-          return None
+          return ReturnValueForNone
        else:
-         return None  
+         return ReturnValueForNone  
      return Value
 
 def GetJsonObject(InputJsonConfig,jsonkey,ObjectType):      

@@ -47,6 +47,8 @@ jsonConfig = base.LoadJsonFile(JsonConfigFile)
 LOG_FILE  = jsonConfig["Log_File"]
 MAX_LINE = jsonConfig["Max_Line"]
 EXP_PATH = jsonConfig["ExportPath"]
+
+
 ####################################################
 
 
@@ -100,7 +102,7 @@ def LoadLogFile():
     global url_counter
     #url_counter = ParingLogFile()
     url_counter = ParingLogFileWithFilter()
-    print(status_code_counter)
+    #print(status_code_counter)
 
 
 def ParingLogFileWithFilter():
@@ -858,7 +860,7 @@ def FilterMenuLuncher(UserInput):
         userInputTime = ChangeScopeMainMenu()        
         if userInputTime == 'off':
             ManualScope = ''
-            AllFilterStatus()            
+            AllFilterStatus()
         elif userInputTime != '':            
             ManualScope = userInputTime
             NEW_Date = FnGetNewDateRange(To_Date,ManualScope)                
@@ -1409,14 +1411,19 @@ if __name__ == '__main__':
     All_StatusCode_5x = [500,501,502,503,504,505,506,507,508,510,511]
     All_NginxStatusCode = [444,494,495,496,497,499]
         
-    filterStatus = False
-    ManualScope = '' 
+    filterStatus = False    
     UNKNOW_AGENT_Str = ''
-    FILTER_IP = []
-    FILTER_URL = []
-    FILTER_UNKNOW_AGENT = []
-    FILTER_AGENT = []
-    FILTER_CODE = []    
+    ## Load Filter From Config File
+
+    FilterDict = base.GetValue(jsonConfig,"Filter",verbus=False)
+    FILTER_IP = base.GetValue(FilterDict,"ip",verbus=False,ReturnValueForNone=[])
+    FILTER_URL = base.GetValue(FilterDict,"url",verbus=False,ReturnValueForNone=[])
+    FILTER_AGENT = base.GetValue(FilterDict,"Browser",verbus=False,ReturnValueForNone=[])
+    FILTER_CODE = base.GetValue(FilterDict,"Status_Code",verbus=False,ReturnValueForNone=[])
+    FILTER_UNKNOW_AGENT = base.GetValue(FilterDict,"unknow_agent",verbus=False,ReturnValueForNone=[])
+    ManualScope = base.GetValue(FilterDict,"time",verbus=False,ReturnValueForNone='')
+
+
     
     Code_1xx = []    
     Code_2xx = []
@@ -1429,6 +1436,7 @@ if __name__ == '__main__':
     #sys.argv.append("a")
     
     if len(sys.argv) == 1:
+        AllFilterStatus()
         LoadLogFile()
         StartHome()
     else:
