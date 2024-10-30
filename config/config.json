@@ -4,7 +4,7 @@
     "ExportPath" : "/home/beigi/myApp/ParsingNginxLogs/export",
     "Filter" : {
         "ip" : [],
-        "url" : ["/en"],
+        "url" : [],
         "Browser" : [],
         "Status_Code" : [],
         "unknow_agent" : [],

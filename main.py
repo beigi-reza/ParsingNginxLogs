@@ -123,6 +123,8 @@ def ParingLogFileWithFilter():
     global All_Agent_counter
     global browser_counter
     global status_code_counter
+    global UnknowAgentName
+    UnknowAgentName = ""
     url_counter = Counter()
     Ip_counter = Counter()    
     Agent_counter = Counter()    
@@ -163,7 +165,7 @@ def ParingLogFileWithFilter():
                 if agent == None:
                     AddThisLine = False                
                     
-                if FILTER_UNKNOW_AGENT != '':
+                if FILTER_UNKNOW_AGENT != []:
                     UnknowAgentName = FilterByAgent(line,FILTER_UNKNOW_AGENT)
                     if UnknowAgentName == None:
                         AddThisLine = False
