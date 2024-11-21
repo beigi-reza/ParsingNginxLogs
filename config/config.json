@@ -1,7 +1,7 @@
 {
-    "Log_File" : "/home/beigi/Temp/access.log",
+    "Log_File" : "/home/beigi/temp/nginx/access.log.1",
     "Max_Line" : 60,
-    "ExportPath" : "/home/beigi/myApp/ParsingNginxLogs/export",
+    "ExportPath" : "/home/beigi/temp/nginx/exp",
     "Filter" : {
         "ip" : [],
         "url" : [],

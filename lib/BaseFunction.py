@@ -68,6 +68,14 @@ def LoadJsonFile(JsonFile):
    return json.loads(js)
 
 def CheckExistDir(Path:str,Title:str,PrintIt = True):
+  """Check Exist Dir.
+  Args:
+    Path: Path of Folder
+    Title: Title for file for Promt
+    PrintIt: Verbus
+  Returns:
+    The equivalent number of seconds.
+  """
   if os.path.isdir(Path) is False:
     if PrintIt is True:       
        print(Style.BRIGHT + Fore.WHITE +  Title + " [ " + Style.BRIGHT + Fore.LIGHTRED_EX + Path + Fore.WHITE + Style.BRIGHT +" ] not exists " + Style.RESET_ALL)                     

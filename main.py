@@ -482,7 +482,7 @@ def ExportUnknownAgentInCSV():
     for _ in Ordered_UnknownAgent:
         _x = Ordered_UnknownAgent[_]
         UnknownAgentList.append(f"{_},{_x}")
-    CreateFile(List4Save=UnknownAgentList,FileName='nginx_logs_Unknown_Agent',Ext='csv')
+    CreateFile(List4Save=UnknownAgentList,FileName='Unknown_Agent',Ext='csv')
 
 def ExportIpinCSV():
     ordered_IP = order_dict_by_value(Ip_counter)
@@ -491,16 +491,16 @@ def ExportIpinCSV():
     for _ in ordered_IP:
         _x = ordered_IP[_]
         IPList.append(f"{_},{_x}")
-    CreateFile(List4Save=IPList,FileName='nginx_logs_IP',Ext='csv')
+    CreateFile(List4Save=IPList,FileName='IP',Ext='csv')
 
 def ExportURLinCSV():
     ordered_url = order_dict_by_value(url_counter)
     UtlList = []
-    UtlList.append('URL,Count')
+    UtlList.append('Count,URL')
     for _ in ordered_url:
         _x = ordered_url[_]
-        UtlList.append(f"{_},{_x}")
-    CreateFile(List4Save=UtlList,FileName='nginx_logs_Url',Ext='csv')
+        UtlList.append(f"{_x},{_}")
+    CreateFile(List4Save=UtlList,FileName='Url',Ext='csv')
 
 def ExportBrowserInCSV():
     ordered_browser = order_dict_by_value(browser_counter)    
@@ -509,14 +509,14 @@ def ExportBrowserInCSV():
     for _ in ordered_browser:
         _x = ordered_browser[_]
         BrowserList.append(f"{_},{_x}")
-    CreateFile(List4Save=BrowserList,FileName='nginx_logs_Browser',Ext='csv')
+    CreateFile(List4Save=BrowserList,FileName='Browser',Ext='csv')
 
 def ExportCodeInCSV():
     StatusCodeList = []
     StatusCodeList.append('StatusCode,Count')
     for _status_code, _count in status_code_counter.most_common():        
         StatusCodeList.append(f"{_status_code},{_count}")
-    CreateFile(List4Save=StatusCodeList,FileName='nginx_logs_Code',Ext='csv')
+    CreateFile(List4Save=StatusCodeList,FileName='Status_Code',Ext='csv')
 
 
 def ExportTextFile():
@@ -638,13 +638,14 @@ def CreateFile(List4Save:list,FileName:str,Ext:str):
     file_name = f"{FileName}_{current_date}.{Ext}"
     FilePath = os.path.join(EXP_PATH,file_name)
     writeFile = False
-    try:
-        with open(FilePath, 'w') as file:        
-            for _ in List4Save:
-                file.write("\n"+_)
-        writeFile = True                
-    except:
-        writeFile = False        
+    if base.CheckExistDir(EXP_PATH,"Export Directory") :
+        try:
+            with open(FilePath, 'w') as file:        
+                for _ in List4Save:
+                    file.write("\n"+_)
+            writeFile = True                
+        except:
+            writeFile = False
 
     if writeFile:
         print("")
