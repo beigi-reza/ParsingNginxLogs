@@ -165,7 +165,7 @@ def ParingLogFileWithFilter():
                 if agent == None:
                     AddThisLine = False                
                     
-                if FILTER_UNKNOW_AGENT != []:
+                if UNKNOW_AGENT_Str != '':
                     UnknowAgentName = FilterByAgent(line,FILTER_UNKNOW_AGENT)
                     if UnknowAgentName == None:
                         AddThisLine = False
@@ -226,6 +226,9 @@ def GetUrlFromLine(line,URLFilter = []):##
                 if _Url in line:            
                     return url                
         return None
+
+#def GetOsFromFromLine(Line,OsFilter = []):
+#    os_regex = r"(Windows NT|Mac OS X|Linux|Android|iPhone|iPad)"
 
 def getAgentFromLine(line,AgentFilter = []):
     global UNKNOW_AGENT_Str
@@ -468,20 +471,20 @@ def ExportMenuLuncher():
 def ExportAllAgentInCSV():
     Ordered_AllAgent = order_dict_by_value(All_Agent_counter)
     AllAgentList = []
-    AllAgentList.append('Unknown Agent,Count')
+    AllAgentList.append('Count,Agent')
     for _ in Ordered_AllAgent:
         _x = Ordered_AllAgent[_]
-        AllAgentList.append(f"{_},{_x}")
-    CreateFile(List4Save=AllAgentList,FileName='nginx_logs_Unknown_Agent',Ext='csv')
+        AllAgentList.append(f"{_x},{_}")
+    CreateFile(List4Save=AllAgentList,FileName='All-Agent',Ext='csv')
 
 
 def ExportUnknownAgentInCSV():
     Ordered_UnknownAgent = order_dict_by_value(Unknown_Agent_counter)
     UnknownAgentList = []
-    UnknownAgentList.append('Unknown Agent,Count')
+    UnknownAgentList.append('Count,Unknown Agent')
     for _ in Ordered_UnknownAgent:
         _x = Ordered_UnknownAgent[_]
-        UnknownAgentList.append(f"{_},{_x}")
+        UnknownAgentList.append(f"{_x},{_}")
     CreateFile(List4Save=UnknownAgentList,FileName='Unknown_Agent',Ext='csv')
 
 def ExportIpinCSV():
