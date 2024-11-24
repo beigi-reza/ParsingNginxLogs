@@ -2,11 +2,9 @@
 from colorama import Fore, Back, Style
 import signal
 import lib.BaseFunction as base
-#import Filter_Time as ChangeScope
 import re
 import os
 import shlex
-#import pandas as pd
 from datetime import datetime, timedelta
 import Banner
 from collections import OrderedDict,Counter
@@ -41,13 +39,30 @@ _reset = Style.RESET_ALL
 
 
 ####################################################
+
 current_directory = os.path.dirname(os.path.realpath(__file__))
 JsonConfigFile = f"{current_directory}/config/config.json"
 jsonConfig = base.LoadJsonFile(JsonConfigFile)
-LOG_FILE  = jsonConfig["Log_File"]
-MAX_LINE = jsonConfig["Max_Line"]
-EXP_PATH = jsonConfig["ExportPath"]
+LogsMode = base.GetValue(jsonConfig,'ParsingMode',verbus=False)
+if LogsMode == None:
+    base.PrintMessage('Section [ParsingMode] not found in config found',MsgType="error",TreminateApp=True,addSpace=0,AddLine=False)
 
+if LogsMode == 'local':
+    LOG_FILE = base.GetValue(jsonConfig,'Log_File',verbus=False)
+    if LOG_FILE == None:
+        base.PrintMessage('Section [Log_File] not found in config found',MsgType="error",TreminateApp=True,addSpace=0,AddLine=False)        
+elif LogsMode == 'docker':
+    ContainerName =  base.GetValue(jsonConfig,"DockerMode","container_name",verbus=False)
+    if ContainerName == 'none':
+        base.PrintMessage('Section [container_name] not found in config found',MsgType="error",TreminateApp=True,addSpace=0,AddLine=False)                
+else:
+    base.PrintMessage('Value section [LogsMode] not detected ',MsgType="error",TreminateApp=True,addSpace=0,AddLine=False)                
+
+
+
+#MAX_LINE = jsonConfig["Max_Line_view",'']
+MAX_LINE = base.GetValue(jsonConfig,'Max_Line_view',verbus=False,ReturnValueForNone=60)
+EXP_PATH = base.GetValue(jsonConfig,'ExportPath',verbus=False,ReturnValueForNone='/tmp')
 
 ####################################################
 
@@ -60,39 +75,6 @@ signal.signal(signal.SIGINT, base.handler)
 ####################################################
 ####################################################
 
-class Parser:
-    IP = 0
-    TIME = 3
-    TIME_ZONE = 4
-    REQUESTED_URL = 5
-    STATUS_CODE = 6
-    USER_AGENT = 9
-
-    def parse_line(self, line):
-        try:
-            line = re.sub(r"[\[\]]", "", line)
-            data = shlex.split(line)
-            result = {
-                "ip": data[self.IP],
-                "time": data[self.TIME],
-                "status_code": data[self.STATUS_CODE],
-                "requested_url": data[self.REQUESTED_URL],
-                "user_agent": data[self.USER_AGENT],
-            }
-            return result
-        except Exception as e:
-            raise e
-
-#def LoadVaraiableFromLogs(LogsDf):
-#    global list_IP_Unique   
-#    global list_IP          
-#    global User_Agent_Unique
-#    global User_Agent       
-#    list_IP_Unique     = LogsDf["ip"].unique()
-#    list_IP            = LogsDf["ip"].value_counts().to_dict()
-#    User_Agent_Unique  = LogsDf["user_agent"].unique()
-#    User_Agent         = LogsDf["user_agent"].value_counts().to_dict()
-
 def LoadLogFile():
     base.clearScreen()
     #Banner.RonixLogo()    
@@ -100,12 +82,11 @@ def LoadLogFile():
     print("")
     print(f"{_B}{_w} Please Wait for analyze log File{_reset}")        
     global url_counter
-    #url_counter = ParingLogFile()
-    url_counter = ParingLogFileWithFilter()
-    #print(status_code_counter)
+    ####ParingLogFileWithFilter()
+    FnLoadLogs()
 
 
-def ParingLogFileWithFilter():
+def FnLoadLogs():
     global TimeofReadLogFile
     global CountLogs
     global To_Date
@@ -114,7 +95,6 @@ def ParingLogFileWithFilter():
     TimeofReadLogFile = datetime.now()        
     # Regex        
     #url_pattern = re.compile(r'"GET\s(\/[^\s]*)')
-    Date_pattern = r'\[(\d{2})/(\w{3})/(\d{4}):(\d{2}):(\d{2}):(\d{2}) [+-]\d{4}\]'
 
     global Ip_counter
     global url_counter    
@@ -124,6 +104,7 @@ def ParingLogFileWithFilter():
     global browser_counter
     global status_code_counter
     global UnknowAgentName
+    global FirstLine    
     UnknowAgentName = ""
     url_counter = Counter()
     Ip_counter = Counter()    
@@ -133,58 +114,121 @@ def ParingLogFileWithFilter():
     browser_counter = Counter()
     status_code_counter = Counter()
 
-    CountLogs = 0    
-    
-    with open(LOG_FILE, 'r') as f:
+    CountLogs = 0
+    if LogsMode == 'local':
+        with open(LOG_FILE, 'r') as f:
             FirstLine = True
-            for line in f:
-                AddThisLine = True                
-                CountLogs += 1
-                DateMatch = re.search(Date_pattern, line)                                    
-                LogTime = ConvertDateinLog2RealTime(DateMatch)
-
-                if ManualScope == '': # جلوگبری از به روزرسانی تاریخ ها اگر زمان تغییر داده شده است
-                    if DateMatch:
-                        To_Date = ConvertDateinLog2RealTime(DateMatch)
-                        if FirstLine: # ثبت تاریخ اولین خط
-                            From_Date = ConvertDateinLog2RealTime(DateMatch)
-                            FirstLine = False                                        
-                else:        
-                    if LogTime < NEW_Date:
-                        AddThisLine = False
-
-                ip_address = GetIpFromLine(line,FILTER_IP)
-                if ip_address == None:
-                    AddThisLine = False
-                    
-                url = GetUrlFromLine(line,FILTER_URL)
-                if url == None:
-                    AddThisLine = False
-                
-                agent = getAgentFromLine(line,FILTER_AGENT)
-                if agent == None:
-                    AddThisLine = False                
-                    
-                if UNKNOW_AGENT_Str != '':
-                    UnknowAgentName = FilterByAgent(line,FILTER_UNKNOW_AGENT)
-                    if UnknowAgentName == None:
-                        AddThisLine = False
-                        
-                StatusCode = GetCodeFromLine(line,FILTER_CODE)
-                if StatusCode == None:
-                    AddThisLine = False
-
-                if AddThisLine:
-                    Ip_counter[ip_address] +=1
-                    url_counter[url] += 1
-                    status_code_counter[StatusCode] += 1
-                    browser_counter[agent] += 1
-                    if agent != 'unknow':
-                        browser_counter[agent] += 1
+            matchFound = False
+            for _line in f:                
+                if matchFound is False:# جلوگیری از بررسی شرط اگر یک خط  درست پیدا شد
+                    if re.search(Date_pattern, _line) == None:
+                        continue
                     else:
-                        Unknown_Agent_counter[UnknowAgentName] += 1
-    return url_counter            
+                        matchFound = True                
+                _rst = ParingLogFileWithFilter(_line)
+                if _rst != '':
+                    Ip_counter[_rst[0]] +=1
+                    url_counter[_rst[1]] += 1
+                    status_code_counter[_rst[2]] += 1                    
+                    if _rst[3] != 'unknow':
+                        browser_counter[_rst[3]] += 1
+                    else:
+                        Unknown_Agent_counter[_rst[4]] += 1
+            if matchFound == False:            
+                msg = """
+The log structure does not match the Nginx log structure.
+This situation occurs in the following cases:
 
+  - The file specified is not the Nginx access.log file.
+  - Nginx has just been launched and has not yet received any requests from the browser.
+
+In the Nginx config, make sure the path to the access.log."""
+
+                base.clearScreen()
+                Banner.ParsingLogo()
+                print(f'{_y}{msg}{_reset}')            
+                base.FnExit()
+    else:
+        logs = CONTAINER.logs().decode("utf-8")
+        FirstLine = True
+        matchFound = False
+        for _line in logs.splitlines():            
+            if matchFound is False: # جلوگیری از بررسی شرط اگر یک خط  درست پیدا شد
+                if re.search(Date_pattern, _line) == None:
+                    continue
+                else:
+                    matchFound = True
+            _rst = ParingLogFileWithFilter(_line)                    
+            if _rst != '':
+                Ip_counter[_rst[0]] +=1
+                url_counter[_rst[1]] += 1
+                status_code_counter[_rst[2]] += 1                    
+                if _rst[3] != 'unknow':
+                    browser_counter[_rst[3]] += 1
+                else:
+                    Unknown_Agent_counter[_rst[4]] += 1
+        if matchFound == False:            
+            msg = """
+The log structure does not match of the Nginx container log structure.
+This situation occurs in the following cases:
+  - The declared container is not an Nginx container.
+  - The log path is redirected to a file in the Nginx configuration.
+  - The container has just been started and has not yet received any requests in the browser.
+"""
+
+            base.clearScreen()
+            Banner.ParsingLogo()
+            print(f'{_y}{msg}{_reset}')            
+            base.FnExit()
+            
+        
+
+def ParingLogFileWithFilter(line):    
+        AddThisLine = True                
+        global CountLogs
+        global FirstLine
+        global From_Date
+        global To_Date
+        CountLogs += 1
+        DateMatch = re.search(Date_pattern, line)                                    
+        LogTime = ConvertDateinLog2RealTime(DateMatch)
+        if ManualScope == '': # جلوگبری از به روزرسانی تاریخ ها اگر زمان تغییر داده شده است
+            if DateMatch:
+                To_Date = ConvertDateinLog2RealTime(DateMatch)
+                if FirstLine: # ثبت تاریخ اولین خط
+                    From_Date = ConvertDateinLog2RealTime(DateMatch)
+                    FirstLine = False                                        
+        else:        
+            if LogTime < NEW_Date:
+                AddThisLine = False
+        ip_address = GetIpFromLine(line,FILTER_IP)
+        if ip_address == None:
+            AddThisLine = False
+            
+        url = GetUrlFromLine(line,FILTER_URL)
+        if url == None:
+            AddThisLine = False
+        
+        agentDict = getAgentFromLine(line,FILTER_AGENT)                
+        agent = agentDict[0]
+        user_agent = agentDict[1]
+        All_Agent_counter[user_agent] +=1
+        if agent == '':
+            AddThisLine = False                
+        
+        if UNKNOW_AGENT_Str != '':
+            UnknowAgentName = FilterByAgent(line,FILTER_UNKNOW_AGENT)
+            if UnknowAgentName == None:
+                AddThisLine = False
+                
+        StatusCode = GetCodeFromLine(line,FILTER_CODE)
+        if StatusCode == None:
+            AddThisLine = False
+        
+        if AddThisLine:
+            return ip_address, url,StatusCode,agent,user_agent
+        else:
+            return ''
 
 def GetCodeFromLine(line,CodeFilter = []):
     Status_Code_Pattern = re.compile(r'"GET\s(\/[^\s]*)\sHTTP/1\.\d"\s(\d{3})')    
@@ -230,40 +274,48 @@ def GetUrlFromLine(line,URLFilter = []):##
 #def GetOsFromFromLine(Line,OsFilter = []):
 #    os_regex = r"(Windows NT|Mac OS X|Linux|Android|iPhone|iPad)"
 
-def getAgentFromLine(line,AgentFilter = []):
-    global UNKNOW_AGENT_Str
+def getAgentFromLine(line,AgentFilter = []):    
+    global UNKNOW_AGENT_Str    
     UNKNOW_AGENT_Str = ""
     browser_regex = r"(Chrome|Firefox|Safari|Opera|Edge|Trident)"
     user_agent = line.split('"')[-4]
+    if FILTER_UNKNOW_AGENT != []:
+        UNKNOW_AGENT_Str = user_agent    
+        return ['unknow',user_agent]
     matchBrowser = re.search(browser_regex, user_agent)    
     if matchBrowser:
         Browser = matchBrowser.group(1)
         if AgentFilter == []:
-            All_Agent_counter[user_agent] +=1
-            return Browser
+            #All_Agent_counter[user_agent] +=1
+            BrowserDict = [Browser,user_agent]
+            return BrowserDict
         else:
             for _agent in AgentFilter:
                 if Browser.lower() in _agent:
-                    All_Agent_counter[user_agent] +=1
-                    return Browser                
+                    BrowserDict = [Browser,user_agent]
+                    #All_Agent_counter[user_agent] +=1
+                    return BrowserDict
             else:
-                return None    
+                return ['',user_agent]
 
     #Unknown_Agent_counter_all[user_agent] +=1
-    UNKNOW_AGENT_Str = user_agent
-    return 'unknow'
-
+    if AgentFilter == []:
+        UNKNOW_AGENT_Str = user_agent    
+        BrowserDict = ['unknow',user_agent,UNKNOW_AGENT_Str]
+        return BrowserDict
+    else:
+        return ['',user_agent]
 def FilterByAgent(line,AgentFilter):
     #if AgentFilter != []:
-    if UNKNOW_AGENT_Str != "":    
-        agentName = line.split('"')[-4]            
-        if AgentFilter == []:
-            return agentName
-        else:
-            for _ in AgentFilter:
-                FindAgent = re.findall(f"^{_}",agentName)
-                if FindAgent:
-                    return agentName        
+    #if UNKNOW_AGENT_Str != "":    
+    agentName = line.split('"')[-4]            
+    if AgentFilter == []:
+        return agentName
+    else:
+        for _ in AgentFilter:
+            FindAgent = re.findall(f"^{_}",agentName)
+            if FindAgent:
+                return agentName        
     return None 
 
 
@@ -278,6 +330,8 @@ def printStatus():
 #        TimeofLog = f'{_w}Log Found From [ {_B}{_w}{From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")}{_reset}{_w} ] to [ {_B}{_w}{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}{_reset}{_w} ]{_reset}'    
 #    else:
 #        TimeofLog = f'{_w}Time Range Changed for ( {_B}{_br} {ManualScope.upper()} {_reset}{_w} ) from [ {_B}{_bm}{From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")}{_reset}{_w} ] to [ {_B}{_bm}{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}{_reset}{_w} ] {_reset}'
+    if LogsMode == 'docker':
+        PrintContainterStatus()        
     print ("{:<30}".format(RowAnalyzed + LastSync))
     print("")
     print("{:<30} {:<30} {:<30}".format(CountIP,CountAgent,CountURL))
@@ -334,7 +388,11 @@ def FnPrintIP(ListOfIP,MaxPrint = 50):
     ordered_dict = order_dict_by_value(ListOfIP)
     base.clearScreen()
     Banner.ParsingLogo()
+    printStatus()    
     print("")
+    if filterStatus is False:
+        print('-------------------------------------    Result    -------------------------------------')
+        print("")
     print (_w + _B +"{:<5} {:<20} {:<10}".format("No.","IP","Count") + _reset )    
     print("")
     xI = 1
@@ -361,7 +419,11 @@ def FnPrintAgent(ListOfAgent,MaxPrint = 50):
     ordered_dict = order_dict_by_value(ListOfAgent)
     base.clearScreen()
     Banner.ParsingLogo()
+    printStatus()
     print("")
+    if filterStatus is False:
+        print('-------------------------------------    Result    -------------------------------------')
+        print("")
     print (_w + _B +"{:<5} {:<10} {:<100}".format("No.","Count","Agent") + _reset )    
     print("")
     xI = 1
@@ -389,6 +451,12 @@ def FnPrintBrowser(ListofBrowser):
     order_dict = order_dict_by_value(ListofBrowser)
     base.clearScreen()
     Banner.ParsingLogo()
+    printStatus()
+    if filterStatus is False:
+        print("")
+        print('-------------------------------------    Result    -------------------------------------')
+        print("")
+
     xI = 1
     for x in order_dict:
         if xI <= 1:
@@ -542,7 +610,7 @@ def ExportTextFile():
 
     if filterStatus:
         TextLst.append("")
-        TextLst.append(f'-------------------------- Filter information --------------------------')
+        TextLst.append(f'--------------------------------------   Filter information   --------------------------------------')
         if ManualScope != '':                    
             TextLst.append(f'[  TIME  ] Time Range for ( {ManualScope.upper()} ) from [ {From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")} ] to [ {To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )} ] ')                    
         if FILTER_IP != '':            
@@ -553,7 +621,7 @@ def ExportTextFile():
             TextLst.append(f'[   Browser   ] Filter on Browser is ON including items received from one of the browsers {FILTER_AGENT}.')        
         if FILTER_CODE != []:
             TextLst.append(f'[   Status Code   ] Filter on HTTP response status codes is ON including items received from one of the browsers {FILTER_CODE} .')            
-        TextLst.append(f'-------------------------- Filter information --------------------------')
+        TextLst.append(f'--------------------------------------   Filter information   --------------------------------------')
         TextLst.append("")        
 
 
@@ -684,15 +752,14 @@ def MainMenuAgent():
         
 
 def MainMenu():
-    base.clearScreen()
-    Banner.ParsingLogo()    
-    printStatus()    
-    if filterStatus:
-        FilterStr = f'{_y}[ {_br}{_B} ENABLE {_reset}{_y} ]'
-    else:
-        FilterStr = f'{_y}[ {_w}Disable {_y}]'    
-        
     while True:        
+        base.clearScreen()
+        Banner.ParsingLogo()    
+        printStatus()    
+        if filterStatus:
+            FilterStr = f'{_y}[ {_br}{_B} ENABLE {_reset}{_y} ]'
+        else:
+            FilterStr = f'{_y}[ {_w}Disable {_y}]'    
         print(f"{_w}")
         print(f"type [ {_D}{_w}0{_N}{_w} ] quit{_reset}")        
         print(f"     [ {_c}1{_w} ] {_c}list of IP{_reset}")
@@ -705,12 +772,10 @@ def MainMenu():
         print(f"     [ {_b}8{_w} ] {_b}Export to File{_reset}")
 
         print("")
-        UserInput = input(f"{_B}{_w}Enter Command :{_reset}")
+        UserInput = input(f"{_B}{_w}Enter [ {_b}1 ~ 8{_w} ] or press {_b}Enter{_w} for reload :{_reset}")
 
-
-#        for _i in ['q','i','u','b','c','a','f','reload','exp']:
-#            if _i == UserInput.strip().lower():
-#                return _i
+        if UserInput.strip() == "":
+            UserInput = '7'
         try:
             _intUserInpt = int(UserInput) 
             if _intUserInpt <= 8:
@@ -724,7 +789,7 @@ def PrimaryMainMenuLuncher():
     if UserInput == 0:
         base.FnExit()
     elif UserInput == 1:
-        NumberInt = GetNumberofFromUser(len(Ip_counter))
+        NumberInt = GetNumberofFromUser(len(Ip_counter))        
         FnPrintIP(Ip_counter,NumberInt)
         input("Press Enter to continiue ...")
     elif UserInput == 2:
@@ -744,12 +809,14 @@ def PrimaryMainMenuLuncher():
     elif UserInput == 6:
         FilterMenuLuncher(FilterMenu())
     elif UserInput == 7:    
+        if LogsMode == 'docker':
+            CheckContainerStatus()
         LoadLogFile()
         #LoadVaraiableFromLogs(logs_df)    
     elif UserInput == 8:
         ExportMenuLuncher()
-
-    StartHome()
+    base.clearScreen()    
+    PrimaryMainMenuLuncher()
 
 def FilterMenu():
     global ManualScope
@@ -1094,8 +1161,13 @@ def GetNumberofFromUser(MaxNumber: int):
 
 def PrintURL(url_couter,MaxPrint):
     #print(len(url_couter))
+    base.clearScreen()
     Banner.ParsingLogo()
-    print("")
+    printStatus()
+    if filterStatus is False:
+        print("")
+        print('-------------------------------------    Result    -------------------------------------')        
+        print("")
     print (_w + _B +"{:<5} {:<10} {:<150}".format("No.","Count","URL") + _reset )    
     print("")
     xI = 1
@@ -1122,7 +1194,12 @@ def PrintURL(url_couter,MaxPrint):
 def printStatusCode():
     base.clearScreen()
     Banner.ParsingLogo()    
-    print("")    
+    printStatus()
+    if filterStatus is False:
+        print("")
+        print('-------------------------------------    Result    -------------------------------------')
+        print("")
+    
     for status_code, count in status_code_counter.most_common():
         CodeColor = _w
         occurrencesMSg = "occurrences"
@@ -1391,12 +1468,60 @@ def AnylyseUserInput(UserInput:str):
 #def AnylyseUserInputDate():
 #    a = GetCustomDate()
 
+def CheckContainerStatus():
+    global CONTAINER
+    global CONTAINER_NAME
+    global CONTAINER_STATUS    
+    global CONTAINER_SHORT_ID    
 
-def StartHome():
-    base.clearScreen()
-    Banner.ParsingLogo()    
-    printStatus()
-    PrimaryMainMenuLuncher()
+    CONTAINER = CheckContainerExists(ContainerName)        
+    CONTAINER_NAME = CONTAINER.name
+    CONTAINER_STATUS = CONTAINER.status    
+    CONTAINER_SHORT_ID = CONTAINER.short_id    
+
+def CheckContainerExists(ContainerName):
+    MSG_erro = ''
+    if ContainerName.strip() == '':        
+        MSG_erro = "ContainerName Value is empty in Config File"                
+    else:    
+        client = docker.from_env()    
+        try:
+            # Fetch the container object
+            container = client.containers.get(ContainerName)        
+            a = container
+        except docker.errors.NotFound:
+            MSG_erro = f"Container '{ContainerName}' not found."
+        except Exception as e:
+            MSG_erro = f"An error occurred: {e}"        
+        if MSG_erro != '':
+            base.PrintMessage(messageString=MSG_erro, MsgType="error", AddLine = True, addSpace = 0)
+            base.FnExit()
+        return container    
+
+def PrintContainterStatus():
+    containerNameStr = f'{_w}Container Name : {_B}{_b} {CONTAINER_NAME} {_reset}'
+    containerIDStr = f'{_w}Short ID : {_B}{_c} {CONTAINER_SHORT_ID} {_reset}'    
+    if CONTAINER_STATUS.lower() == 'pause':
+        _Sts_Color = _m
+        _Sts_Color1 = _bm        
+    elif CONTAINER_STATUS.lower() == 'exited':
+        _Sts_Color = _r
+        _Sts_Color1 = _br
+    elif CONTAINER_STATUS.lower() == 'running':
+        _Sts_Color = _g
+        _Sts_Color1 = _blg
+    else:
+        _Sts_Color = _y
+        _Sts_Color1 = _by
+
+    containerStatusStr = f'{_Sts_Color}Statud : {_Sts_Color1} {CONTAINER_STATUS.upper()} {_reset}'
+
+    containerStr = f'{containerNameStr}  /  {containerIDStr} / {containerStatusStr}'
+
+    print("")
+    print(containerStr)
+    print("")
+
 
 
 ####################################################
@@ -1404,24 +1529,32 @@ def StartHome():
 ####################################################
 ####################################################
 
-if base.CheckExistFile(LOG_FILE,"",PrintIt=True) is False:
-    base.FnExit()
+if LogsMode == 'local':
+    if base.CheckExistFile(LOG_FILE,"",PrintIt=True) is False:
+        base.FnExit()
+elif LogsMode == 'docker':
+    import docker
+    CONTAINER_NAME = ""
+    CONTAINER_STATUS = ""
+    CONTAINER_SHORT_ID = ""
+    CheckContainerStatus()
+
 
 
 if __name__ == '__main__':        
     
-    All_StatusCode_1x = [100,101,102,103]
-    All_StatusCode_2x = [200, 201, 202, 203, 204, 205, 206, 207, 208, 226]
-    All_StatusCode_3x = [300,301,302,303,304,305,306,307,308]
-    All_StatusCode_4x = [400,401,402,403,404,405,406,407,408,409,410,411,412,413,414,415,416,417,418,421,422,423,424,425,426,428,429,431,451]
-    All_StatusCode_5x = [500,501,502,503,504,505,506,507,508,510,511]
-    All_NginxStatusCode = [444,494,495,496,497,499]
-        
+    All_StatusCode_1x = base.GetValue(jsonConfig,"StatusCodes",'1x')
+    All_StatusCode_2x = base.GetValue(jsonConfig,"StatusCodes",'2x')
+    All_StatusCode_3x = base.GetValue(jsonConfig,"StatusCodes",'3x')
+    All_StatusCode_4x = base.GetValue(jsonConfig,"StatusCodes",'4x')
+    All_StatusCode_5x = base.GetValue(jsonConfig,"StatusCodes",'5x')
+    All_NginxStatusCode = base.GetValue(jsonConfig,"StatusCodes",'NginxStatusCode')
+    
     filterStatus = False    
     UNKNOW_AGENT_Str = ''
     ## Load Filter From Config File
 
-    FilterDict = base.GetValue(jsonConfig,"Filter",verbus=False)
+    FilterDict = base.GetValue(jsonConfig,"Filter",verbus=False,ReturnValueForNone={})
     FILTER_IP = base.GetValue(FilterDict,"ip",verbus=False,ReturnValueForNone=[])
     FILTER_URL = base.GetValue(FilterDict,"url",verbus=False,ReturnValueForNone=[])
     FILTER_AGENT = base.GetValue(FilterDict,"Browser",verbus=False,ReturnValueForNone=[])
@@ -1429,6 +1562,7 @@ if __name__ == '__main__':
     FILTER_UNKNOW_AGENT = base.GetValue(FilterDict,"unknow_agent",verbus=False,ReturnValueForNone=[])
     ManualScope = base.GetValue(FilterDict,"time",verbus=False,ReturnValueForNone='')
 
+    Date_pattern = r'\[(\d{2})/(\w{3})/(\d{4}):(\d{2}):(\d{2}):(\d{2}) [+-]\d{4}\]'
 
     
     Code_1xx = []    
@@ -1444,7 +1578,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         AllFilterStatus()
         LoadLogFile()
-        StartHome()
+        PrimaryMainMenuLuncher()
     else:
         print("---------")    
 

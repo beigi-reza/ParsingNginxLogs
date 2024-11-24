@@ -5,8 +5,7 @@
 #####################################################
 #####################################################
 # Navigation Menu 
-# PreintMessageAndExit - 1402-05-30
-# Update GetValue - 1402-06-02
+# Update GetValue - 1403-09-03
 
 import json
 from colorama import Fore, Back, Style
@@ -121,72 +120,65 @@ def CheckExist(path,FileOrDir, title,Verbus):
        return False
 
 def GetValue(InputDict:dict,*Key,verbus = True,ReturnValueForNone = None):
+  """برای خواندن مقداری از یک دیکشنری همراه با مدیریت خطاها و مقدار برگشتی.
+
+  Args:
+    InputDict: دبکشنری ورودی
+    Key: مفداری که جستجو برای آن انجامخواهد و تا 5 زیر مرحله را قبول می کند
+    verbus: در صورت پیدا نشدن مقدار پیغام دهد 
+    ReturnValueForNone:  در صپرت پیدا نشدن مقدار این متغیر برگردانده می شود . مقدار پیشفرض نان
+  Returns:
+    مقدار متغیر دریافتی در صورت وجود    
+  Example:
+    GetValue(jsonConfig,"DockerMode") 
+    GetValue(jsonConfig,"DockerMode","container_name")
+    GetValue(jsonConfig,"section1","section2","section3")
+    GetValue(jsonConfig,"DockerMode","container_name","xc",verbus=False)
+    GetValue(jsonConfig,"DockerMode","container_name","xc",verbus=False,ReturnValueForNone='')
+  """
+  ValueNotFoun = False
   if len(Key) == 1:
-     try:
-       Value = InputDict[Key[0]]        
-     except:
-       if verbus:    
-          print(Style.BRIGHT + Back.RED+ Fore.WHITE + "Value (({})) Not Found / GetValue Function in BaseFunction.py".format(Key) + Style.RESET_ALL)
-          input(Style.BRIGHT + Fore.WHITE + "Press Any Key to ... ")
-          return ReturnValueForNone
-       else:
-         return ReturnValueForNone  
-     return Value
+    try:
+      Value = InputDict[Key[0]]              
+    except:
+      ValueNotFoun = True
   elif len(Key) == 2:
-     try:
-       Value = InputDict[Key[0]][Key[1]]
-     except:
-       if verbus:    
-          print(Style.BRIGHT + Back.RED+ Fore.WHITE + "Value (({})) Not Found / GetValue Function in BaseFunction.py".format(Key) + Style.RESET_ALL)
-          input(Style.BRIGHT + Fore.WHITE + "Press Any Key to ... ")
-          return ReturnValueForNone
-       else:
-         return ReturnValueForNone  
-     return Value
+    try:
+      Value = InputDict[Key[0]][Key[1]]      
+    except:
+      ValueNotFoun = True
   elif len(Key) == 3:
-     try:
-       Value = InputDict[Key[0]][Key[1]][Key[2]]
-     except:
-       if verbus:    
-          print(Style.BRIGHT + Back.RED+ Fore.WHITE + "Value (({})) Not Found / GetValue Function in BaseFunction.py".format(Key) + Style.RESET_ALL)
-          input(Style.BRIGHT + Fore.WHITE + "Press Any Key to ... ")
-          return ReturnValueForNone
-       else:
-         return ReturnValueForNone  
-     return Value
+    try:
+      Value = InputDict[Key[0]][Key[1]][Key[2]]
+    except:
+      ValueNotFoun = True  
   elif len(Key) == 4:
-     try:       
-       Value = InputDict[Key[0]][Key[1]][Key[2]][Key[3]]
-     except:
-       if verbus:    
-          print(Style.BRIGHT + Back.RED+ Fore.WHITE + "Value (({})) Not Found / GetValue Function in BaseFunction.py".format(Key) + Style.RESET_ALL)
-          input(Style.BRIGHT + Fore.WHITE + "Press Any Key to ... ")
-          return ReturnValueForNone
-       else:
-         return ReturnValueForNone  
-     return Value
+    try:       
+      Value = InputDict[Key[0]][Key[1]][Key[2]][Key[3]]
+    except:
+      ValueNotFoun = True  
   elif len(Key) == 5:
-     try:       
-       Value = InputDict[Key[0]][Key[1]][Key[2]][Key[3]][Key[4]]
-     except:
-       if verbus:    
-          print(Style.BRIGHT + Back.RED+ Fore.WHITE + "Value (({})) Not Found / GetValue Function in BaseFunction.py".format(Key) + Style.RESET_ALL)
-          input(Style.BRIGHT + Fore.WHITE + "Press Any Key to ... ")
-          return ReturnValueForNone
-       else:
-         return ReturnValueForNone  
-     return Value
+    try:       
+      Value = InputDict[Key[0]][Key[1]][Key[2]][Key[3]][Key[4]]
+    except:
+      ValueNotFoun = True  
   elif len(Key) == 6:
-     try:       
-       Value = InputDict[Key[0]][Key[1]][Key[2]][Key[3]][Key[4]][Key[5]]
-     except:
-       if verbus:    
-          print(Style.BRIGHT + Back.RED+ Fore.WHITE + "Value (({})) Not Found / GetValue Function in BaseFunction.py".format(Key) + Style.RESET_ALL)
-          input(Style.BRIGHT + Fore.WHITE + "Press Any Key to ... ")
-          return ReturnValueForNone
-       else:
-         return ReturnValueForNone  
-     return Value
+    try:       
+      Value = InputDict[Key[0]][Key[1]][Key[2]][Key[3]][Key[4]][Key[5]]
+    except:
+      ValueNotFoun = True  
+
+  if ValueNotFoun:  
+    if verbus:
+      Rst = ''
+      for _ in Key:
+        Rst = Rst + f'["{_}"]'
+      #print(Style.BRIGHT + Back.RED+ Fore.WHITE + "Value (({})) Not Found / GetValue Function in BaseFunction.py".format(Rst) + Style.RESET_ALL)
+      print(f'{_B}{_w}Value  {_r}{Rst}{_w}   Not Found . {_reset}/ GetValue Function in BaseFunction.py')
+      input(Style.BRIGHT + Fore.WHITE + "Press Any Key to ... ")      
+    return ReturnValueForNone            
+  return Value
+
 
 def GetJsonObject(InputJsonConfig,jsonkey,ObjectType):      
   try:
