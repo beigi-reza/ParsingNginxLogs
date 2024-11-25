@@ -2,6 +2,7 @@
 from colorama import Fore, Back, Style
 import signal
 import lib.BaseFunction as base
+import configPanel
 import re
 import os
 import shlex
@@ -43,12 +44,14 @@ _reset = Style.RESET_ALL
 current_directory = os.path.dirname(os.path.realpath(__file__))
 JsonConfigFile = f"{current_directory}/config/config.json"
 jsonConfig = base.LoadJsonFile(JsonConfigFile)
+GlobalSearchMode = base.GetValue(jsonConfig,'SearchMode',verbus=False,ReturnValueForNone='')
 LogsMode = base.GetValue(jsonConfig,'ParsingMode',verbus=False)
+
 if LogsMode == None:
     base.PrintMessage('Section [ParsingMode] not found in config found',MsgType="error",TreminateApp=True,addSpace=0,AddLine=False)
 
 if LogsMode == 'local':
-    LOG_FILE = base.GetValue(jsonConfig,'Log_File',verbus=False)
+    LOG_FILE = base.GetValue(jsonConfig,'LocalMode','Log_File',verbus=False)
     if LOG_FILE == None:
         base.PrintMessage('Section [Log_File] not found in config found',MsgType="error",TreminateApp=True,addSpace=0,AddLine=False)        
 elif LogsMode == 'docker':
@@ -120,11 +123,10 @@ def FnLoadLogs():
             FirstLine = True
             matchFound = False
             for _line in f:                
-                if matchFound is False:# جلوگیری از بررسی شرط اگر یک خط  درست پیدا شد
-                    if re.search(Date_pattern, _line) == None:
-                        continue
-                    else:
-                        matchFound = True                
+                if re.search(Date_pattern, _line) == None:
+                    continue
+                else:
+                    matchFound = True                
                 _rst = ParingLogFileWithFilter(_line)
                 if _rst != '':
                     Ip_counter[_rst[0]] +=1
@@ -153,11 +155,10 @@ In the Nginx config, make sure the path to the access.log."""
         FirstLine = True
         matchFound = False
         for _line in logs.splitlines():            
-            if matchFound is False: # جلوگیری از بررسی شرط اگر یک خط  درست پیدا شد
-                if re.search(Date_pattern, _line) == None:
-                    continue
-                else:
-                    matchFound = True
+            if re.search(Date_pattern, _line) == None:
+                continue
+            else:
+                matchFound = True
             _rst = ParingLogFileWithFilter(_line)                    
             if _rst != '':
                 Ip_counter[_rst[0]] +=1
@@ -243,6 +244,22 @@ def GetCodeFromLine(line,CodeFilter = []):
                     return status_code
         return None        
 
+def SearchIt(search_term,phrase,SearchMode=''):
+    if SearchMode.strip() == "":
+        SearchMode = GlobalSearchMode
+    if SearchMode.lower().strip() == 'start':
+        FindIt = re.findall(f"^{search_term}",phrase,re.IGNORECASE)
+    elif SearchMode.lower().strip() == 'end':
+        FindIt = re.findall(f"{search_term}$",phrase,re.IGNORECASE)
+    elif SearchMode.lower().strip() == 'all':
+        FindIt = re.findall(search_term,phrase,re.IGNORECASE)
+    elif SearchMode.lower().strip() == 'exactly':
+        if search_term.lower() == phrase.lower():
+            FindIt = True
+        else:
+            FindIt = False
+
+    return FindIt
 
 def GetIpFromLine(line,IpFilter = []):
     IP_pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
@@ -253,7 +270,8 @@ def GetIpFromLine(line,IpFilter = []):
             return ip_address
         else:
             for _Ip in IpFilter:
-                FindIp = re.findall(f"^{_Ip}",ip_address)                
+                #FindIp = re.findall(f"^{_Ip}",ip_address)                
+                FindIp = SearchIt(_Ip,ip_address)
                 if FindIp:
                     return ip_address            
         return None        
@@ -266,8 +284,9 @@ def GetUrlFromLine(line,URLFilter = []):##
         if URLFilter == []:
             return url
         else:
-            for _Url in URLFilter:            
-                if _Url in line:            
+            for _UrlFilterItem in URLFilter:            
+                #if _Url in line:            
+                if SearchIt(_UrlFilterItem,url):
                     return url                
         return None
 
@@ -313,7 +332,8 @@ def FilterByAgent(line,AgentFilter):
         return agentName
     else:
         for _ in AgentFilter:
-            FindAgent = re.findall(f"^{_}",agentName)
+            #FindAgent = re.findall(f"^{_}",agentName)
+            FindAgent = SearchIt(_,agentName)
             if FindAgent:
                 return agentName        
     return None 
