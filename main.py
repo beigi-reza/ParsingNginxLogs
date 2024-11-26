@@ -2,10 +2,8 @@
 from colorama import Fore, Back, Style
 import signal
 import lib.BaseFunction as base
-import configPanel
 import re
 import os
-import shlex
 from datetime import datetime, timedelta
 import Banner
 from collections import OrderedDict,Counter
@@ -44,8 +42,93 @@ _reset = Style.RESET_ALL
 current_directory = os.path.dirname(os.path.realpath(__file__))
 JsonConfigFile = f"{current_directory}/config/config.json"
 jsonConfig = base.LoadJsonFile(JsonConfigFile)
-GlobalSearchMode = base.GetValue(jsonConfig,'SearchMode',verbus=False,ReturnValueForNone='')
 LogsMode = base.GetValue(jsonConfig,'ParsingMode',verbus=False)
+GLOBAL_SEARCH_METHOD = base.GetValue(jsonConfig,'SearchMode',verbus=False,ReturnValueForNone='')
+GLOBAL_SEARCH_METHOD_ALIAS = ''
+SEARCHDISCRIPTION = ''
+
+#MAX_LINE = jsonConfig["Max_Line_view",'']
+MAX_LINE = base.GetValue(jsonConfig,'Max_Line_view',verbus=False,ReturnValueForNone=60)
+EXP_PATH = base.GetValue(jsonConfig,'ExportPath',verbus=False,ReturnValueForNone='/tmp')
+
+####################################################
+
+
+
+signal.signal(signal.SIGINT, base.handler)
+
+####################################################
+####################################################
+####################################################
+####################################################
+
+def CheckSearchMode(GlobalSearchMode):        
+    global SEARCHDISCRIPTION
+    global GLOBAL_SEARCH_METHOD
+    global GLOBAL_SEARCH_METHOD_ALIAS
+    if GlobalSearchMode.lower() == 'start':
+        SEARCHDISCRIPTION = 'The search term must be at the beginning of the phrase.'
+        GLOBAL_SEARCH_METHOD_ALIAS = 'start with'
+    elif GlobalSearchMode.lower() == 'end':
+        SEARCHDISCRIPTION = 'The search term must be at the end of the phrase.'
+        GLOBAL_SEARCH_METHOD_ALIAS = 'end with'
+    elif GlobalSearchMode.lower() == 'all':
+        SEARCHDISCRIPTION = 'The search term can be anywhere in the phrase.'
+        GLOBAL_SEARCH_METHOD_ALIAS = 'Anywhere'
+    elif GlobalSearchMode.lower() == 'exactly':
+        SEARCHDISCRIPTION = 'Search term exactly matches the phrase'
+        GLOBAL_SEARCH_METHOD_ALIAS = 'match exactly'        
+    else:
+        GLOBAL_SEARCH_METHOD = 'start'
+        SEARCHDISCRIPTION = 'The search term must be at the beginning of the phrase.'
+        GLOBAL_SEARCH_METHOD_ALIAS = 'start with'
+def ChangeSearchMode(SearchMode):
+    while True:
+        Selected = f'{_by}'
+        Start_Select = ''
+        End_Select = ''
+        All_Select = ''
+        exactly_Select = ''
+        if SearchMode.lower() == 'start':
+            Start_Select = Selected
+            End_Select = All_Select = exactly_Select = ''
+        elif SearchMode.lower() == 'end':
+            End_Select = Selected
+            Start_Select = All_Select = exactly_Select = ''            
+        elif SearchMode.lower() == 'all':
+            All_Select = Selected
+            Start_Select = End_Select = exactly_Select = ''            
+        elif SearchMode.lower() == 'exactly':
+            exactly_Select = Selected
+            Start_Select = End_Select = All_Select = ''            
+        else:
+            SearchMode = ''
+        base.clearScreen()
+        Banner.ParsingLogo()    
+        print(f"{_w}")
+        print(f"press [ {_D}{_w}Enter{_N}{_w} ] for back{_reset}")        
+        print(f"type  [ {_D}{_w}0{_N}{_w} ]  for quit{_reset}")        
+        print(f"      [ {_c}{Start_Select}start{_reset}{_w}   ] {_c}The search term must be at the beginning of the phrase.{_reset}")
+        print(f"      [ {_c}{End_Select}end{_reset}{_w}     ] {_c}The search term must be at the end of the phrase.{_reset}")
+        print(f"      [ {_c}{All_Select}all{_reset}{_w}     ] {_c}The search term can be anywhere in the phrase.{_reset}")
+        print(f"      [ {_c}{exactly_Select}exactly{_reset}{_w} ] {_c}Search term exactly matches the phrase{_reset}")
+        print("")
+        SearchModeInput = input(f"{_B}{_w}Enter Search Mode or press {_b}Enter{_w} for back :{_reset}")        
+
+
+        if SearchModeInput.lower().strip() in ['start','end','all','exactly',""]:
+            return SearchModeInput.lower().strip()        
+        else:
+            base.PrintMessage(messageString=f'Value ( {SearchModeInput} ) not valid',MsgType="error", AddLine = True, addSpace = 0)
+            input(f'{_reset}{_D}{_w}press enter ...{_reset}')
+
+def ChangeSearchModeLuncher(_GlobalSearchMode):
+    global SEARCHDISCRIPTION
+    global GLOBAL_SEARCH_METHOD
+    SearchMode = ChangeSearchMode(_GlobalSearchMode)    
+    CheckSearchMode(SearchMode)
+    GLOBAL_SEARCH_METHOD = SearchMode    
+    
 
 if LogsMode == None:
     base.PrintMessage('Section [ParsingMode] not found in config found',MsgType="error",TreminateApp=True,addSpace=0,AddLine=False)
@@ -62,21 +145,6 @@ else:
     base.PrintMessage('Value section [LogsMode] not detected ',MsgType="error",TreminateApp=True,addSpace=0,AddLine=False)                
 
 
-
-#MAX_LINE = jsonConfig["Max_Line_view",'']
-MAX_LINE = base.GetValue(jsonConfig,'Max_Line_view',verbus=False,ReturnValueForNone=60)
-EXP_PATH = base.GetValue(jsonConfig,'ExportPath',verbus=False,ReturnValueForNone='/tmp')
-
-####################################################
-
-
-
-signal.signal(signal.SIGINT, base.handler)
-
-####################################################
-####################################################
-####################################################
-####################################################
 
 def LoadLogFile():
     base.clearScreen()
@@ -246,7 +314,7 @@ def GetCodeFromLine(line,CodeFilter = []):
 
 def SearchIt(search_term,phrase,SearchMode=''):
     if SearchMode.strip() == "":
-        SearchMode = GlobalSearchMode
+        SearchMode = GLOBAL_SEARCH_METHOD
     if SearchMode.lower().strip() == 'start':
         FindIt = re.findall(f"^{search_term}",phrase,re.IGNORECASE)
     elif SearchMode.lower().strip() == 'end':
@@ -339,8 +407,8 @@ def FilterByAgent(line,AgentFilter):
     return None 
 
 
-def printStatus():    
-    RowAnalyzed = f"{_B}{_b}Row analyzed {_bb} {CountLogs} {_reset}"    
+def printStatus():        
+    RowAnalyzed = f"{_b}Row analyzed {_bb} {CountLogs} {_reset}"    
     CountIP = f"{_y}Uniq ip detected  {_by} {len(Ip_counter)} {_w}{_reset}"    
     CountAgent = f"{_g} Unknown agent detected {_blg} {len(Unknown_Agent_counter)} {_w}{_reset}"    
     CountURL = f"{_c} Uniq URL detected {_bc} {len(url_counter)} {_w}{_reset}"    
@@ -358,10 +426,12 @@ def printStatus():
     print("")
     print ("{:<100}".format(TimeofLog))
 
-    if filterStatus:
+    if filterStatus:        
+
         print("")
         print(f'{_w}-------------------------- Filter information --------------------------{_reset}')    
         print("")
+
         if ManualScope != '':                    
             print(f'{_bbw} TIME {_reset}{_w} : Time Range for ( {_B}{_y} {ManualScope.upper()} {_reset}{_w} ) from [ {_B}{_y}{From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")}{_reset}{_w} ] to [ {_B}{_y}{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}{_reset}{_w} ] {_reset}')                    
             print("")
@@ -839,7 +909,7 @@ def PrimaryMainMenuLuncher():
     PrimaryMainMenuLuncher()
 
 def FilterMenu():
-    global ManualScope
+    global ManualScope    
     global FILTER_IP
     base.clearScreen()
     Banner.ParsingLogo()    
@@ -848,7 +918,11 @@ def FilterMenu():
             print("")
             print(f'{_B}{_bm }  [  Filter is Enabled  ]  {_reset}')            
         else:    
-            print(f'{_B}{_w}All Filter is OFF{_reset}')            
+            print(f'{_w}All Filter is OFF{_reset}')                    
+        print("")
+        print(f'{_w}Search Method : {_by} {GLOBAL_SEARCH_METHOD_ALIAS.upper()} {_reset}{_w} : {_y}{SEARCHDISCRIPTION}{_reset}')                
+        print(f"{_w}The search method affects {_b}IP{_w}, {_b}URL{_w}, and {_b}agent{_w} filters.")
+
 
         if ManualScope == '':
             StrTimeRange = f' is {_w}OFF{_reset}' 
@@ -889,8 +963,8 @@ def FilterMenu():
         print(f"      [ {_b}4{_w} ] {_b} Filter on Status Code{CodeStr}{_reset}")
         print(f"      [ {_b}5{_w} ] {_b} Filter on Unknow Agent{UnknowStr}{_reset}")        
         print(f"      [ {_b}6{_w} ] {_b} Filter on Time range{StrTimeRange} {_reset}")        
-        print(f"      [ {_r}7{_w} ] {_b} All Filter Set OFF{_reset}")        
-    
+        print(f"      [ {_r}7{_w} ] {_r} All Filter Set OFF{_reset}")        
+        print(f"      [ {_c}8{_w} ] {_c} Change search Method {_reset}")        
         print("")
         UserInput = input(f"{_B}{_w}Enter Command :{_reset}")
         
@@ -898,7 +972,7 @@ def FilterMenu():
             return ''
         try:            
             _intUserInpt = int(UserInput) 
-            if _intUserInpt <= 7:
+            if _intUserInpt <= 8:
                 return _intUserInpt
         except:            
             base.PrintMessage(messageString=f'Value ({UserInput}) not valid',MsgType="error", AddLine = True, addSpace = 0)        
@@ -966,13 +1040,19 @@ def FilterMenuLuncher(UserInput):
         filterStatus = False
         AllFilterStatus(AllFilterOff=True)
         FilterMenuLuncher(FilterMenu())
+    elif UserInput == 8: ############## Change Search Method
+        ChangeSearchModeLuncher(GLOBAL_SEARCH_METHOD)
+        base.clearScreen()
+        Banner.ParsingLogo()
+        FilterMenuLuncher(FilterMenu())    
+
     elif UserInput == '': # Back to main Menu
         base.clearScreen()
         Banner.ParsingLogo()    
         if filterStatus:
             LoadLogFile()    
         printStatus()
-        PrimaryMainMenuLuncher()
+        PrimaryMainMenuLuncher()        
 def StatusCodeFilterMenu():
     global FILTER_CODE
     while True:
@@ -1559,8 +1639,6 @@ elif LogsMode == 'docker':
     CONTAINER_SHORT_ID = ""
     CheckContainerStatus()
 
-
-
 if __name__ == '__main__':        
     
     All_StatusCode_1x = base.GetValue(jsonConfig,"StatusCodes",'1x')
@@ -1597,6 +1675,7 @@ if __name__ == '__main__':
     
     if len(sys.argv) == 1:
         AllFilterStatus()
+        CheckSearchMode(GLOBAL_SEARCH_METHOD)
         LoadLogFile()
         PrimaryMainMenuLuncher()
     else:

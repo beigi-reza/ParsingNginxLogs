@@ -1,5 +1,5 @@
 {
-    "ParsingMode" : "local",
+    "ParsingMode" : "docker",
     "Max_Line_view" : 60,
     "ExportPath" : "/home/beigi/temp/nginx/exp",
     "SearchMode" : "start",
