@@ -1,0 +1,576 @@
+[
+    {
+        "Id": "5bd6cc2a3c5fd8389a34b44548fb05e2f83a496550e9736bd5987e10594cd2c4",
+        "Names": [
+            "/StageTMSDashboard"
+        ],
+        "Image": "dockerhub.ronix.ir/ronixtms/tms_dashboars:0.0.1552",
+        "ImageID": "sha256:01ae4745bcac6c69e3bd0f2ed62bf6a1880afa76cfa5914b2ef7bfc72934d846",
+        "Command": "dotnet RonixLMS.DashboardMVC.dll",
+        "Created": 1732543479,
+        "Ports": [
+            {
+                "PrivatePort": 443,
+                "Type": "tcp"
+            },
+            {
+                "PrivatePort": 80,
+                "Type": "tcp"
+            }
+        ],
+        "Labels": {
+            "com.docker.compose.config-hash": "d5d96e50b33487dc33e3351f5d824aaa73ca796d5fddde65f97d27acc72126c4",
+            "com.docker.compose.container-number": "1",
+            "com.docker.compose.oneoff": "False",
+            "com.docker.compose.project": "stagetms",
+            "com.docker.compose.project.config_files": "stageTMScompose.yml",
+            "com.docker.compose.project.working_dir": "/stageApp/stageTMS",
+            "com.docker.compose.service": "Stage-TMSDashboard",
+            "com.docker.compose.version": "1.25.1-rc1"
+        },
+        "State": "running",
+        "Status": "Up 28 minutes",
+        "HostConfig": {
+            "NetworkMode": "ronix-net"
+        },
+        "NetworkSettings": {
+            "Networks": {
+                "ronix-net": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "13739da03e5917b6a2dd4ca8eb7ea7dfe631dc5402b0f3f37a3a50d52b898287",
+                    "EndpointID": "ca87a0cb254870d47c4646413e84979883516b1419bada2556b0654412849e1d",
+                    "Gateway": "150.50.50.1",
+                    "IPAddress": "150.50.50.8",
+                    "IPPrefixLen": 24,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:96:32:32:08",
+                    "DriverOpts": null
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/mnt/tmsFiles",
+                "Destination": "/app/wwwroot/tms",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/stageApp/stageTMS/config/appsettings.json",
+                "Destination": "/app/appsettings.json",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/stageApp/stageTMS/config/web.config",
+                "Destination": "/app/web.config",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            }
+        ]
+    },
+    {
+        "Id": "c42c1ae544edb3dab4b8d501b787b0b964cf70724d42bd7e03b98668ed80db3c",
+        "Names": [
+            "/irStageWebsite"
+        ],
+        "Image": "dockerhub.ronix.ir/ronixtools/website:3.1.3176",
+        "ImageID": "sha256:ae144473ecaac5279be7f7a283f801decac5bd29f0f6d491a62341278e536f48",
+        "Command": "dotnet RonixToolsWebsite_V3.dll",
+        "Created": 1731566959,
+        "Ports": [
+            {
+                "PrivatePort": 443,
+                "Type": "tcp"
+            },
+            {
+                "PrivatePort": 80,
+                "Type": "tcp"
+            }
+        ],
+        "Labels": {
+            "com.docker.compose.config-hash": "8b631d47dbbe7f94ddc384cf0b40c7db3130d98a99e5ea1cce3dbe28a0c78e43",
+            "com.docker.compose.container-number": "1",
+            "com.docker.compose.oneoff": "False",
+            "com.docker.compose.project": "irstagewebsite",
+            "com.docker.compose.project.config_files": "irStageWebSite-compose.yml",
+            "com.docker.compose.project.working_dir": "/stageApp/irStageWebsite",
+            "com.docker.compose.service": "irStageWebsite",
+            "com.docker.compose.version": "1.25.1-rc1"
+        },
+        "State": "running",
+        "Status": "Up 28 minutes",
+        "HostConfig": {
+            "NetworkMode": "ronix-net"
+        },
+        "NetworkSettings": {
+            "Networks": {
+                "ronix-net": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "13739da03e5917b6a2dd4ca8eb7ea7dfe631dc5402b0f3f37a3a50d52b898287",
+                    "EndpointID": "42ac70b810fbe96815c734a676a0437dad559336583888c35e38de5a0a58a5fa",
+                    "Gateway": "150.50.50.1",
+                    "IPAddress": "150.50.50.5",
+                    "IPPrefixLen": 24,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:96:32:32:05",
+                    "DriverOpts": null
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/irWwwFiles/sitemaps",
+                "Destination": "/app/wwwroot/sitemaps",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/stageApp/irStageWebsite/aspnet",
+                "Destination": "/root/.aspnet",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/stageApp/fonts",
+                "Destination": "/usr/share/fonts",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/stageApp/irStageWebsite/config/appsettings.json",
+                "Destination": "/app/appsettings.json",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/stageApp/irStageWebsite/config/web.config",
+                "Destination": "/app/web.config",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/irWwwFiles/media",
+                "Destination": "/app/wwwroot/img/media",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ]
+    },
+    {
+        "Id": "ff27dda87fcd6265196f43f184d5b593cfdd9f08c4a241931f67dd53e1245ed7",
+        "Names": [
+            "/StageCloudApi"
+        ],
+        "Image": "dockerhub.ronix.ir/cloudapiservice/cloudapi:1.0.424",
+        "ImageID": "sha256:36587dcbb0232f9fd46de5c7ca3d2d6200b5cc34e88d90c30518a665cdaa5faf",
+        "Command": "dotnet ApprovementService.dll",
+        "Created": 1731506629,
+        "Ports": [
+            {
+                "PrivatePort": 443,
+                "Type": "tcp"
+            },
+            {
+                "PrivatePort": 80,
+                "Type": "tcp"
+            }
+        ],
+        "Labels": {
+            "com.docker.compose.config-hash": "844ed0e42280cb3879664c63e62b7a0e21d410063e56d15b561870bb56028be8",
+            "com.docker.compose.container-number": "1",
+            "com.docker.compose.oneoff": "False",
+            "com.docker.compose.project": "cloudapiservicestage",
+            "com.docker.compose.project.config_files": "cloudApi-compose.yml",
+            "com.docker.compose.project.working_dir": "/stageApp/cloudApiServiceStage",
+            "com.docker.compose.service": "StageCloudApi",
+            "com.docker.compose.version": "1.25.1-rc1"
+        },
+        "State": "running",
+        "Status": "Up 28 minutes",
+        "HostConfig": {
+            "NetworkMode": "ronix-net"
+        },
+        "NetworkSettings": {
+            "Networks": {
+                "ronix-net": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "13739da03e5917b6a2dd4ca8eb7ea7dfe631dc5402b0f3f37a3a50d52b898287",
+                    "EndpointID": "af0404c75228f9ff0c4e24c664d830e9bb4d24e6dd9b5a27e089c6a32764329c",
+                    "Gateway": "150.50.50.1",
+                    "IPAddress": "150.50.50.4",
+                    "IPPrefixLen": 24,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:96:32:32:04",
+                    "DriverOpts": null
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/stageApp/cloudApiServiceStage/config/appsettings.json",
+                "Destination": "/app/appsettings.json",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            }
+        ]
+    },
+    {
+        "Id": "ca8f900fa0870e0be7f8aac0fa7ee0655d74e2def47141a35e43190d80ec4c06",
+        "Names": [
+            "/nginx"
+        ],
+        "Image": "dockerhub.ronix.ir/nginx/nginx:1.25.3",
+        "ImageID": "sha256:c20060033e06f882b0fbe2db7d974d72e0887a3be5e554efdb0dcf8d53512647",
+        "Command": "/docker-entrypoint.sh nginx -g 'daemon off;'",
+        "Created": 1730723445,
+        "Ports": [
+            {
+                "IP": "0.0.0.0",
+                "PrivatePort": 443,
+                "PublicPort": 443,
+                "Type": "tcp"
+            },
+            {
+                "IP": "::",
+                "PrivatePort": 443,
+                "PublicPort": 443,
+                "Type": "tcp"
+            },
+            {
+                "IP": "0.0.0.0",
+                "PrivatePort": 80,
+                "PublicPort": 80,
+                "Type": "tcp"
+            },
+            {
+                "IP": "::",
+                "PrivatePort": 80,
+                "PublicPort": 80,
+                "Type": "tcp"
+            }
+        ],
+        "Labels": {
+            "com.docker.compose.config-hash": "19dcfab04a2ae2b001687f8543a7d6fd97a5fefc4a1a8fd11d5ba2b41c62480e",
+            "com.docker.compose.container-number": "1",
+            "com.docker.compose.oneoff": "False",
+            "com.docker.compose.project": "stageapp",
+            "com.docker.compose.project.config_files": "docker-compose.yml",
+            "com.docker.compose.project.working_dir": "/stageApp",
+            "com.docker.compose.service": "nginx",
+            "com.docker.compose.version": "1.25.1-rc1",
+            "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>"
+        },
+        "State": "running",
+        "Status": "Up 28 minutes",
+        "HostConfig": {
+            "NetworkMode": "ronix-net"
+        },
+        "NetworkSettings": {
+            "Networks": {
+                "ronix-net": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "13739da03e5917b6a2dd4ca8eb7ea7dfe631dc5402b0f3f37a3a50d52b898287",
+                    "EndpointID": "c97940490194a3b29989c6cbdc5a57b82ca5412c265495d692ba87ae669b2b30",
+                    "Gateway": "150.50.50.1",
+                    "IPAddress": "150.50.50.2",
+                    "IPPrefixLen": 24,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:96:32:32:02",
+                    "DriverOpts": null
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/etc/letsencrypt-shop",
+                "Destination": "/etc/letsencrypt-shop",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/stageApp/nginx/conf.d",
+                "Destination": "/etc/nginx/conf.d",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/stageApp/nginx/ssl",
+                "Destination": "/nginx/ssl",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/tmp/acme_challenge",
+                "Destination": "/tmp/acme_challenge",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/stageApp/nginx/ErrorPage",
+                "Destination": "/usr/share/nginx/html",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/etc/letsencrypt",
+                "Destination": "/etc/letsencrypt",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/etc/letsencrypt-ir",
+                "Destination": "/etc/letsencrypt-ir",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            }
+        ]
+    },
+    {
+        "Id": "e8736eab6b3b0970e62ec1d395c3bcc0271c4279a85f5b0f1aebc57553df95df",
+        "Names": [
+            "/stageCASP"
+        ],
+        "Image": "dockerhub.ronix.ir/cloudapiservice/cloudapidashboard:0.0.78",
+        "ImageID": "sha256:30c021e65dc40eb2d1586ffb9f3386b1839092aaa4f8ff68c85e2784d6e18afd",
+        "Command": "/docker-entrypoint.sh nginx -g 'daemon off;'",
+        "Created": 1721483636,
+        "Ports": [
+            {
+                "PrivatePort": 80,
+                "Type": "tcp"
+            }
+        ],
+        "Labels": {
+            "com.docker.compose.config-hash": "b9f17a1997c2bfbf7fa3a3edde5a5088bf150b75ed9476373a540b96539fefa7",
+            "com.docker.compose.container-number": "1",
+            "com.docker.compose.oneoff": "False",
+            "com.docker.compose.project": "stagecasp",
+            "com.docker.compose.project.config_files": "CASP-compose.yml",
+            "com.docker.compose.project.working_dir": "/stageApp/stageCASP",
+            "com.docker.compose.service": "stageCASP",
+            "com.docker.compose.version": "1.25.1-rc1",
+            "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>"
+        },
+        "State": "running",
+        "Status": "Up 28 minutes",
+        "HostConfig": {
+            "NetworkMode": "ronix-net"
+        },
+        "NetworkSettings": {
+            "Networks": {
+                "ronix-net": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "13739da03e5917b6a2dd4ca8eb7ea7dfe631dc5402b0f3f37a3a50d52b898287",
+                    "EndpointID": "5090035dab7bcc7986b3df9a35889f5bcf9bc8f8d0ed3af1ef3aab0fa8b31df4",
+                    "Gateway": "150.50.50.1",
+                    "IPAddress": "150.50.50.7",
+                    "IPPrefixLen": 24,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:96:32:32:07",
+                    "DriverOpts": null
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/stageApp/stageCASP/conf-file/default.conf",
+                "Destination": "/etc/nginx/conf.d/default.conf",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/stageApp/stageCASP/conf-file/appsetting.json",
+                "Destination": "/usr/share/nginx/html/appsetting.json",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ]
+    },
+    {
+        "Id": "d1cd74c41dbf8b409b42849e551a4a255194a5015b418daa9cf4491de73e1f5f",
+        "Names": [
+            "/StageiRonix"
+        ],
+        "Image": "dockerhub.ronix.ir/ironix/ironix:0.0.5",
+        "ImageID": "sha256:e70288f3f1420eaf174f5a15c26a613e1323ff0792b1f5c6087d2330879621b0",
+        "Command": "/docker-entrypoint.sh nginx -g 'daemon off;'",
+        "Created": 1718096615,
+        "Ports": [
+            {
+                "PrivatePort": 80,
+                "Type": "tcp"
+            }
+        ],
+        "Labels": {
+            "com.docker.compose.config-hash": "e3842a1b31d71576f2cd72ac27d5f0aa3a2e23b5bd3ae8c267638025224d8b89",
+            "com.docker.compose.container-number": "1",
+            "com.docker.compose.oneoff": "False",
+            "com.docker.compose.project": "stageironix",
+            "com.docker.compose.project.config_files": "iRonixStageCompose.yml",
+            "com.docker.compose.project.working_dir": "/stageApp/StageiRonix",
+            "com.docker.compose.service": "StageiRonix",
+            "com.docker.compose.version": "1.25.1-rc1",
+            "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>"
+        },
+        "State": "running",
+        "Status": "Up 28 minutes",
+        "HostConfig": {
+            "NetworkMode": "ronix-net"
+        },
+        "NetworkSettings": {
+            "Networks": {
+                "ronix-net": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "13739da03e5917b6a2dd4ca8eb7ea7dfe631dc5402b0f3f37a3a50d52b898287",
+                    "EndpointID": "f8d929b8868763d0927c2fbd50b6ff65486908710d5abe6bf7f16215475ff533",
+                    "Gateway": "150.50.50.1",
+                    "IPAddress": "150.50.50.3",
+                    "IPPrefixLen": 24,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:96:32:32:03",
+                    "DriverOpts": null
+                }
+            }
+        },
+        "Mounts": []
+    },
+    {
+        "Id": "46c1c0af35d2000557df1319a30479e4c8e8a87e09675b4654b7b72d90b178c0",
+        "Names": [
+            "/RonixShopStage"
+        ],
+        "Image": "dockerhub.ronix.ir/ronixtools/website-ir:0.0.944",
+        "ImageID": "sha256:ef22cf5368e3ba0ff687328b048e90b4e68706c25ae00a35e8636bb7f07ae0ef",
+        "Command": "./RonixToolsWebsite_V3",
+        "Created": 1709474965,
+        "Ports": [
+            {
+                "PrivatePort": 80,
+                "Type": "tcp"
+            }
+        ],
+        "Labels": {
+            "com.docker.compose.config-hash": "a4e364d4e04619240ec8273397659174af6802d15945b780771bfef88518d1d9",
+            "com.docker.compose.container-number": "1",
+            "com.docker.compose.oneoff": "False",
+            "com.docker.compose.project": "robixshopstage",
+            "com.docker.compose.project.config_files": "ronixShopStage-compose.yml",
+            "com.docker.compose.project.working_dir": "/stageApp/robixShopStage",
+            "com.docker.compose.service": "RonixShopStage",
+            "com.docker.compose.version": "1.25.1-rc1"
+        },
+        "State": "running",
+        "Status": "Up 28 minutes",
+        "HostConfig": {
+            "NetworkMode": "ronix-net"
+        },
+        "NetworkSettings": {
+            "Networks": {
+                "ronix-net": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "13739da03e5917b6a2dd4ca8eb7ea7dfe631dc5402b0f3f37a3a50d52b898287",
+                    "EndpointID": "1b24387412dd0b501c59ca72087dc1a7d3d16b85177d870eeb03820edc832299",
+                    "Gateway": "150.50.50.1",
+                    "IPAddress": "150.50.50.6",
+                    "IPPrefixLen": 24,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:96:32:32:06",
+                    "DriverOpts": null
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/ronixShopWwwFiles/sitemaps",
+                "Destination": "/app/wwwroot/sitemaps",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/stageApp/robixShopStage/config/appsettings.json",
+                "Destination": "/app/appsettings.json",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/ronixShopWwwFiles/media",
+                "Destination": "/app/wwwroot/img/media",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ]
+    }
+]

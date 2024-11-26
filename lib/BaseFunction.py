@@ -119,7 +119,7 @@ def CheckExist(path,FileOrDir, title,Verbus):
           print(Style.BRIGHT + Fore.WHITE + "If the path is correct, for create run this Comand [ " + Fore.CYAN + "mkdir -p {}".format(path) + Fore.WHITE + " ] " + Style.RESET_ALL )
        return False
 
-def GetValue(InputDict:dict,*Key,verbus = True,ReturnValueForNone = None):
+def GetValue(InputDict:dict,*Key,verbus = True,ReturnValueForNone = None,TerminateApp = False):
   """برای خواندن مقداری از یک دیکشنری همراه با مدیریت خطاها و مقدار برگشتی.
 
   Args:
@@ -127,6 +127,7 @@ def GetValue(InputDict:dict,*Key,verbus = True,ReturnValueForNone = None):
     Key: مفداری که جستجو برای آن انجامخواهد و تا 5 زیر مرحله را قبول می کند
     verbus: در صورت پیدا نشدن مقدار پیغام دهد 
     ReturnValueForNone:  در صپرت پیدا نشدن مقدار این متغیر برگردانده می شود . مقدار پیشفرض نان
+    TerminateApp : اگر مقدار بگیرد از نرم افزار خارج می شود
   Returns:
     مقدار متغیر دریافتی در صورت وجود    
   Example:
@@ -176,6 +177,8 @@ def GetValue(InputDict:dict,*Key,verbus = True,ReturnValueForNone = None):
       #print(Style.BRIGHT + Back.RED+ Fore.WHITE + "Value (({})) Not Found / GetValue Function in BaseFunction.py".format(Rst) + Style.RESET_ALL)
       print(f'{_B}{_w}Value  {_r}{Rst}{_w}   Not Found . {_reset}/ GetValue Function in BaseFunction.py')
       input(Style.BRIGHT + Fore.WHITE + "Press Any Key to ... ")      
+      if TerminateApp:
+        FnExit()
     return ReturnValueForNone            
   return Value
 

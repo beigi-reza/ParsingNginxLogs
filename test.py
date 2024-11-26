@@ -1,33 +1,39 @@
-# Import the necessary packages
-from consolemenu import *
-from consolemenu.items import *
+import requests
+import json
 
-# Create the menu
-menu = ConsoleMenu("Title", "Subtitle")
+# Docker socket URL for local communication
+#DOCKER_API_URL = "http+unix://%2Fvar%2Frun%2Fdocker.sock/v1.41/containers/json"
+DOCKER_API_URL = "http://10.1.8.181:2375/v1.41/containers/json"
 
-# Create some items
+# If using TCP/IP (remote communication), replace with your Docker host and port
+# DOCKER_API_URL = "http://<docker-host-ip>:2375/v1.41/containers/json"
 
-# MenuItem is the base class for all items, it doesn't do anything when selected
-menu_item = MenuItem("Menu Item")
+def list_docker_containers(api_url):
+    try:
+        # Request the list of containers
+        response = requests.get(api_url)
+        
+        # Check for errors
+        if response.status_code == 200:
+            containers = response.json()
+            return containers
+        else:
+            print(f"Error: Unable to fetch containers (Status Code: {response.status_code})")
+            print(response.text)
+            return None
+    except Exception as e:
+        print(f"Exception occurred: {e}")
+        return None
 
-# A FunctionItem runs a Python function when selected
-function_item = FunctionItem("Call a Python function", input, ["Enter an input"])
+# Fetch container list
+containers = list_docker_containers(DOCKER_API_URL)
 
-# A CommandItem runs a console command
-command_item = CommandItem("Run a console command",  "touch hello.txt")
 
-# A SelectionMenu constructs a menu from a list of strings
-selection_menu = SelectionMenu(["item1", "item2", "item3"])
-
-# A SubmenuItem lets you add a menu (the selection_menu above, for example)
-# as a submenu of another menu
-submenu_item = SubmenuItem("Submenu item", selection_menu, menu)
-
-# Once we're done creating them, we just add the items to the menu
-menu.append_item(menu_item)
-menu.append_item(function_item)
-menu.append_item(command_item)
-menu.append_item(submenu_item)
-
-# Finally, we call show to show the menu and allow the user to interact
-menu.show()
+with open("data.json", "w") as json_file:
+    json.dump(containers, json_file)
+# Print the results
+if containers:
+    for container in containers:
+        print(f"ID: {container['Id'][:12]}, Names: {container['Names']}, Image: {container['Image']}")
+else:
+    print("No containers found or unable to connect to the Docker API.")

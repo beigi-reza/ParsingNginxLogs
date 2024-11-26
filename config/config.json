@@ -6,8 +6,10 @@
     "LocalMode":{
         "Log_File" : "/home/beigi/temp/nginx/access.log.1"
     },
-    "DockerMode" : {        
-        "container_name" : "nginx"        
+    "Docker_Api_Server" : {        
+        "container_name" : "nginx",        
+        "Ip" : "10.1.8.181",
+        "Port" : "2375"
     },
     "StatusCodes" :{
         "1x": [100,101,102,103],

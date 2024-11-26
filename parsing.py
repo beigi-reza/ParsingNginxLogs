@@ -9,6 +9,7 @@ import Banner
 from collections import OrderedDict,Counter
 from datetime import datetime
 import sys
+import dockerLib
 
 #from collections import Counter
 
@@ -138,7 +139,7 @@ if LogsMode == 'local':
     if LOG_FILE == None:
         base.PrintMessage('Section [Log_File] not found in config found',MsgType="error",TreminateApp=True,addSpace=0,AddLine=False)        
 elif LogsMode == 'docker':
-    ContainerName =  base.GetValue(jsonConfig,"DockerMode","container_name",verbus=False)
+    ContainerName =  base.GetValue(jsonConfig,"Docker_Api_Server","container_name",verbus=False)
     if ContainerName == 'none':
         base.PrintMessage('Section [container_name] not found in config found',MsgType="error",TreminateApp=True,addSpace=0,AddLine=False)                
 else:
@@ -1568,36 +1569,6 @@ def AnylyseUserInput(UserInput:str):
 #def AnylyseUserInputDate():
 #    a = GetCustomDate()
 
-def CheckContainerStatus():
-    global CONTAINER
-    global CONTAINER_NAME
-    global CONTAINER_STATUS    
-    global CONTAINER_SHORT_ID    
-
-    CONTAINER = CheckContainerExists(ContainerName)        
-    CONTAINER_NAME = CONTAINER.name
-    CONTAINER_STATUS = CONTAINER.status    
-    CONTAINER_SHORT_ID = CONTAINER.short_id    
-
-def CheckContainerExists(ContainerName):
-    MSG_erro = ''
-    if ContainerName.strip() == '':        
-        MSG_erro = "ContainerName Value is empty in Config File"                
-    else:    
-        client = docker.from_env()    
-        try:
-            # Fetch the container object
-            container = client.containers.get(ContainerName)        
-            a = container
-        except docker.errors.NotFound:
-            MSG_erro = f"Container '{ContainerName}' not found."
-        except Exception as e:
-            MSG_erro = f"An error occurred: {e}"        
-        if MSG_erro != '':
-            base.PrintMessage(messageString=MSG_erro, MsgType="error", AddLine = True, addSpace = 0)
-            base.FnExit()
-        return container    
-
 def PrintContainterStatus():
     containerNameStr = f'{_w}Container Name : {_B}{_b} {CONTAINER_NAME} {_reset}'
     containerIDStr = f'{_w}Short ID : {_B}{_c} {CONTAINER_SHORT_ID} {_reset}'    
@@ -1629,18 +1600,22 @@ def PrintContainterStatus():
 ####################################################
 ####################################################
 
-if LogsMode == 'local':
-    if base.CheckExistFile(LOG_FILE,"",PrintIt=True) is False:
-        base.FnExit()
-elif LogsMode == 'docker':
-    import docker
-    CONTAINER_NAME = ""
-    CONTAINER_STATUS = ""
-    CONTAINER_SHORT_ID = ""
-    CheckContainerStatus()
+if __name__ == '__main__':            
+    if LogsMode == 'local':
+        if base.CheckExistFile(LOG_FILE,"",PrintIt=True) is False:
+            base.FnExit()
+    elif LogsMode == 'docker':
+        import docker
+        _Server = base.GetValue(jsonConfig,'Docker_Api_Server','Ip',verbus=False,ReturnValueForNone='127.0.0.1')
+        if _Server in ['localhost','127.0.0.1','']:
+            DOCKER_IS_LOCAL= True
+        else:
+            DOCKER_IS_LOCAL= False
+        CONTAINER_NAME = ""
+        CONTAINER_STATUS = ""
+        CONTAINER_SHORT_ID = ""
+        CheckContainerStatus()
 
-if __name__ == '__main__':        
-    
     All_StatusCode_1x = base.GetValue(jsonConfig,"StatusCodes",'1x')
     All_StatusCode_2x = base.GetValue(jsonConfig,"StatusCodes",'2x')
     All_StatusCode_3x = base.GetValue(jsonConfig,"StatusCodes",'3x')
@@ -1672,7 +1647,7 @@ if __name__ == '__main__':
     
 
     #sys.argv.append("a")
-    
+
     if len(sys.argv) == 1:
         AllFilterStatus()
         CheckSearchMode(GLOBAL_SEARCH_METHOD)
