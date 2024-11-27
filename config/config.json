@@ -7,8 +7,8 @@
         "Log_File" : "/home/beigi/temp/nginx/access.log.1"
     },
     "Docker_Api_Server" : {        
-        "container_name" : "nginx",        
-        "Ip" : "10.1.8.181",
+        "container_name" : "nginx",                
+        "Ip" : "",
         "Port" : "2375"
     },
     "StatusCodes" :{

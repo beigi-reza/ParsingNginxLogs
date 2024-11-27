@@ -220,7 +220,8 @@ In the Nginx config, make sure the path to the access.log."""
                 print(f'{_y}{msg}{_reset}')            
                 base.FnExit()
     else:
-        logs = CONTAINER.logs().decode("utf-8")
+        #logs = CONTAINER.logs().decode("utf-8")
+        logs = dockerLib.LoadContainerLog(CONTAINER,DOCKER_IS_LOCAL)
         FirstLine = True
         matchFound = False
         for _line in logs.splitlines():            
@@ -901,7 +902,7 @@ def PrimaryMainMenuLuncher():
         FilterMenuLuncher(FilterMenu())
     elif UserInput == 7:    
         if LogsMode == 'docker':
-            CheckContainerStatus()
+            dockerCheck()
         LoadLogFile()
         #LoadVaraiableFromLogs(logs_df)    
     elif UserInput == 8:
@@ -1570,7 +1571,12 @@ def AnylyseUserInput(UserInput:str):
 #    a = GetCustomDate()
 
 def PrintContainterStatus():
-    containerNameStr = f'{_w}Container Name : {_B}{_b} {CONTAINER_NAME} {_reset}'
+    if DOCKER_IS_LOCAL:
+        containerNameStr = f'{_w}Container Name : {_B}{_b} {CONTAINER_NAME} {_reset}'
+    else:
+        server = base.GetValue(jsonConfig,'Docker_Api_Server','Ip',verbus=False,ReturnValueForNone='')
+        ServerDetail = f'{_w}Server : {_B}{_by} {server} {_reset}'
+        containerNameStr = f'{ServerDetail} {_w}Container Name : {_B}{_c} {CONTAINER_NAME} {_reset}'
     containerIDStr = f'{_w}Short ID : {_B}{_c} {CONTAINER_SHORT_ID} {_reset}'    
     if CONTAINER_STATUS.lower() == 'pause':
         _Sts_Color = _m
@@ -1585,7 +1591,7 @@ def PrintContainterStatus():
         _Sts_Color = _y
         _Sts_Color1 = _by
 
-    containerStatusStr = f'{_Sts_Color}Statud : {_Sts_Color1} {CONTAINER_STATUS.upper()} {_reset}'
+    containerStatusStr = f'{_Sts_Color}Status : {_Sts_Color1} {CONTAINER_STATUS.upper()} {_reset}'
 
     containerStr = f'{containerNameStr}  /  {containerIDStr} / {containerStatusStr}'
 
@@ -1593,6 +1599,20 @@ def PrintContainterStatus():
     print(containerStr)
     print("")
 
+def dockerCheck():
+    global CONTAINER
+    global CONTAINER_NAME
+    global CONTAINER_STATUS
+    global CONTAINER_SHORT_ID
+    global DOCKER_IS_LOCAL
+
+    _CONTAINER = dockerLib.CheckContainerStatus()
+    CONTAINER = _CONTAINER[0]
+    CONTAINER_NAME = _CONTAINER[1]
+    CONTAINER_STATUS = _CONTAINER[2]
+    CONTAINER_SHORT_ID = _CONTAINER[3]
+    DOCKER_IS_LOCAL = _CONTAINER[4]
+    
 
 
 ####################################################
@@ -1606,15 +1626,14 @@ if __name__ == '__main__':
             base.FnExit()
     elif LogsMode == 'docker':
         import docker
-        _Server = base.GetValue(jsonConfig,'Docker_Api_Server','Ip',verbus=False,ReturnValueForNone='127.0.0.1')
-        if _Server in ['localhost','127.0.0.1','']:
-            DOCKER_IS_LOCAL= True
-        else:
-            DOCKER_IS_LOCAL= False
-        CONTAINER_NAME = ""
-        CONTAINER_STATUS = ""
-        CONTAINER_SHORT_ID = ""
-        CheckContainerStatus()
+        dockerCheck()
+        CONTAINER = ''
+        CONTAINER_NAME = ''
+        CONTAINER_STATUS = ''
+        CONTAINER_SHORT_ID = ''
+        DOCKER_IS_LOCAL = False
+
+
 
     All_StatusCode_1x = base.GetValue(jsonConfig,"StatusCodes",'1x')
     All_StatusCode_2x = base.GetValue(jsonConfig,"StatusCodes",'2x')

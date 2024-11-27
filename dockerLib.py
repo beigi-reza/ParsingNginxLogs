@@ -60,7 +60,7 @@ def FetchListDockerContainers(Server:str,port:str,DockerIsLocal:str ):
 def CheckContainerExists(ContainerName,dockerIsLocal):
     Server= base.GetValue(jsonConfig,'Docker_Api_Server','Ip',verbus=False,ReturnValueForNone='127.0.0.1')
     port = base.GetValue(jsonConfig,'Docker_Api_Server','Port',TerminateApp=True)    
-    if Server in ['localhost','127.0.0.1','']:
+    if Server in ['localhost','127.0.0.1','','local','.']:
         dockerIsLocal = True
     else:
         dockerIsLocal = False
@@ -89,16 +89,47 @@ def CheckContainerExists(ContainerName,dockerIsLocal):
                     return _
             return None
 
-def CheckContainerStatus(ContainerName,dockerIsLocal):
+def CheckContainerStatus():
+    _Server = base.GetValue(jsonConfig,'Docker_Api_Server','Ip',verbus=False,ReturnValueForNone='127.0.0.1')
+    _ContainerName =  base.GetValue(jsonConfig,"Docker_Api_Server","container_name",verbus=False)
+    if _Server in ['localhost','127.0.0.1','','local','.']:
+        _Localserver = True
+    else:
+        _Localserver = False
+
+    _Container = CheckContainerExists(_ContainerName,_Localserver)
+    if _Localserver:    
+        Container_name = _Container.name
+        Container_status = _Container.status
+        Container_short_id = _Container.short_id            
+    else:
+        Container_name = _Container["Names"][0].lstrip("/")        
+        Container_status = _Container["State"]
+        Container_short_id = _Container["Id"][:12]
+    return _Container,Container_name,Container_status,Container_short_id,_Localserver
         
-    CONTAINER = CheckContainerExists(ContainerName,dockerIsLocal)
-    CONTAINER_NAME = CONTAINER.name
-    CONTAINER_STATUS = CONTAINER.status    
-    CONTAINER_SHORT_ID = CONTAINER.short_id    
 
-
-        
-
+def LoadContainerLog(container_name,dockerIsLocal):
+    if dockerIsLocal:
+        try:
+            logs = container_name.logs().decode("utf-8")
+        except:
+            return None    
+    else:
+        _Server = base.GetValue(jsonConfig,'Docker_Api_Server','Ip',TerminateApp=True)
+        _port = base.GetValue(jsonConfig,'Docker_Api_Server','Port',TerminateApp=True)        
+        client = docker.DockerClient(base_url=f"tcp://{_Server}:{_port}")
+        try:
+            _Name = container_name["Names"][0]
+            _container = client.containers.get(_Name)
+            logs = _container.logs().decode("utf-8")
+        except docker.errors.NotFound:
+            print(f"Container '{container_name}' not found.")
+            return None
+        except Exception as e:
+            print(f"An error occurred: {e}")            
+            return None
+    return logs
 
 
 #####################################

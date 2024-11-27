@@ -1,6 +1,8 @@
 import requests
 import json
 
+
+
 # Docker socket URL for local communication
 #DOCKER_API_URL = "http+unix://%2Fvar%2Frun%2Fdocker.sock/v1.41/containers/json"
 DOCKER_API_URL = "http://10.1.8.181:2375/v1.41/containers/json"
