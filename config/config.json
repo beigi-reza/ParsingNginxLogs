@@ -3,6 +3,11 @@
     "Max_Line_view" : 60,
     "ExportPath" : "/home/beigi/temp/nginx/exp",
     "SearchMode" : "start",
+    "GeoDatabasePath" : "/home/beigi/myApp/ParsingNginxLogs/geoLocation/GeoLite2-City.mmdb",
+    "GeoLocation" : {
+        "Ronix Company" : ["10.1.8.*","10.100.8.*"],
+        "Ronix Intenet Germany"  : ["213.61.45.115","5.160.13.226"]        
+    },
     "LocalMode":{
         "Log_File" : "/home/beigi/temp/nginx/access.log.1"
     },

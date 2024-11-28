@@ -21,8 +21,8 @@ def get_ip_location_local(ip_address, db_path):
         return {"Error": str(e)}
 
 # Example usage
-db_path = "/home/beigi/myApp/ParsingNginxLogs/geoLocation/GeoLite2-City_20241126/GeoLite2-City.mmdb"  # Replace with your actual path
-ip = "8.8.8.8"  # Replace with the IP address you want to check
+db_path = "/home/beigi/myApp/ParsingNginxLogs/geoLocation/GeoLite2-City.mmdb"  # Replace with your actual path
+ip = "5.160.13.226"  # Replace with the IP address you want to check
 location = get_ip_location_local(ip, db_path)
 print(location)
 

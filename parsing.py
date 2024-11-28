@@ -10,6 +10,7 @@ from collections import OrderedDict,Counter
 from datetime import datetime
 import sys
 import dockerLib
+import geoip2
 
 #from collections import Counter
 
@@ -51,6 +52,7 @@ SEARCHDISCRIPTION = ''
 #MAX_LINE = jsonConfig["Max_Line_view",'']
 MAX_LINE = base.GetValue(jsonConfig,'Max_Line_view',verbus=False,ReturnValueForNone=60)
 EXP_PATH = base.GetValue(jsonConfig,'ExportPath',verbus=False,ReturnValueForNone='/tmp')
+GEO_BB_PATH = base.GetValue(jsonConfig,'GeoDatabasePath',TerminateApp=True)
 
 ####################################################
 
@@ -62,6 +64,9 @@ signal.signal(signal.SIGINT, base.handler)
 ####################################################
 ####################################################
 ####################################################
+
+
+
 
 def CheckSearchMode(GlobalSearchMode):        
     global SEARCHDISCRIPTION
@@ -148,22 +153,17 @@ else:
 
 
 def LoadLogFile():
-    base.clearScreen()
-    #Banner.RonixLogo()    
-    Banner.PleaseWait()
-    print("")
-    print(f"{_B}{_w} Please Wait for analyze log File{_reset}")        
-    global url_counter
-    ####ParingLogFileWithFilter()
-    FnLoadLogs()
-
-
-def FnLoadLogs():
     global TimeofReadLogFile
     global CountLogs
     global To_Date
     global From_Date 
-        
+    global url_counter
+
+    base.clearScreen()    
+    Banner.PleaseWait()
+    print("")
+    print(f"{_B}{_w} Please Wait for analyze log File{_reset}")            
+    
     TimeofReadLogFile = datetime.now()        
     # Regex        
     #url_pattern = re.compile(r'"GET\s(\/[^\s]*)')
@@ -275,7 +275,9 @@ def ParingLogFileWithFilter(line):
         ip_address = GetIpFromLine(line,FILTER_IP)
         if ip_address == None:
             AddThisLine = False
-            
+###
+###
+
         url = GetUrlFromLine(line,FILTER_URL)
         if url == None:
             AddThisLine = False
@@ -301,7 +303,29 @@ def ParingLogFileWithFilter(line):
         else:
             return ''
 
-def GetCodeFromLine(line,CodeFilter = []):
+def GetIpLocation(IpAdress):
+    try:        
+    # Load the GeoLite2 City database
+        with geoip2.database.Reader(GEO_BB_PATH) as reader:
+            response = reader.city(IpAdress)
+        
+        # Extract location information
+            location_data = {
+                "IP": IpAdress,
+                "Country": response.country.name,
+                "Region": response.subdivisions.most_specific.name,
+                "City": response.city.name,
+                "Latitude": response.location.latitude,
+                "Longitude": response.location.longitude,
+                "Time Zone": response.location.time_zone
+        }
+        return location_data
+    except Exception as e:
+        return {"Error": str(e)}
+
+    
+
+def GetCodeFromLine(line,CodeFilter = []):##
     Status_Code_Pattern = re.compile(r'"GET\s(\/[^\s]*)\sHTTP/1\.\d"\s(\d{3})')    
     CodeMatch = Status_Code_Pattern.search(line)
     if CodeMatch:        
