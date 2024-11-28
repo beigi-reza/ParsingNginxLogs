@@ -1626,8 +1626,7 @@ if __name__ == '__main__':
             base.FnExit()
     elif LogsMode == 'docker':
         import docker
-        dockerCheck()
-        CONTAINER = ''
+        dockerCheck()        
         CONTAINER_NAME = ''
         CONTAINER_STATUS = ''
         CONTAINER_SHORT_ID = ''

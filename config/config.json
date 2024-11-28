@@ -1,5 +1,5 @@
 {
-    "ParsingMode" : "docker",
+    "ParsingMode" : "local",
     "Max_Line_view" : 60,
     "ExportPath" : "/home/beigi/temp/nginx/exp",
     "SearchMode" : "start",
@@ -8,7 +8,7 @@
     },
     "Docker_Api_Server" : {        
         "container_name" : "nginx",                
-        "Ip" : "",
+        "Ip" : "10.1.8.180",
         "Port" : "2375"
     },
     "StatusCodes" :{
