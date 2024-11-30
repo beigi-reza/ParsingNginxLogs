@@ -2,12 +2,7 @@
     "ParsingMode" : "local",
     "Max_Line_view" : 60,
     "ExportPath" : "/home/beigi/temp/nginx/exp",
-    "SearchMode" : "start",
-    "GeoDatabasePath" : "/home/beigi/myApp/ParsingNginxLogs/geoLocation/GeoLite2-City.mmdb",
-    "GeoLocation" : {
-        "Ronix Company" : ["10.1.8.*","10.100.8.*"],
-        "Ronix Intenet Germany"  : ["213.61.45.115","5.160.13.226"]        
-    },
+    "SearchMode" : "start",    
     "LocalMode":{
         "Log_File" : "/home/beigi/temp/nginx/access.log.1"
     },
@@ -24,12 +19,40 @@
         "5x": [500,501,502,503,504,505,506,507,508,510,511],
         "NginxStatusCode": [444,494,495,496,497,499]
     },
+    "GeoConfig" : {
+        "GeoIpisDisable" : true,
+        "GeoDatabasePath" : "/home/beigi/myApp/ParsingNginxLogs/geoLocation/GeoLite2-City.mmdb",
+        "location" :{
+            "Ronix Iran" : {
+                "Name" : "Ronix Iran",
+                "IP" : ["10.*.*.*","10.100.*.*"],                
+                "Country" : "Iran",
+                "Region" : "",
+                "City" : "",
+                "Latitude": "",
+                "Longitude": "",
+                "Time Zone": "Asia/Tehran"                
+            },
+            "Ronix Germany" : {
+                "Name" : "Ronix Germany Internet",
+                "IP" : ["213.61.45.115","5.160.13.226"],
+                "Country" : "Iran",
+                "Region" : "",
+                "City" : "",
+                "Latitude": "",
+                "Longitude": "",
+                "Time Zone": "Asia/Tehran"                
+            }                        
+        }
+    },
     "Filter" : {
         "ip" : [],
         "url" : [],
         "Browser" : [],
         "Status_Code" : [],
         "unknow_agent" : [],
-        "time" : ""
+        "time" : "",
+        "Country" : []
     }
+
 }

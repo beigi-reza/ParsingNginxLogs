@@ -10,7 +10,8 @@ from collections import OrderedDict,Counter
 from datetime import datetime
 import sys
 import dockerLib
-import geoip2
+import GeoIpLocation
+#import GeoIpLocation
 
 #from collections import Counter
 
@@ -52,7 +53,10 @@ SEARCHDISCRIPTION = ''
 #MAX_LINE = jsonConfig["Max_Line_view",'']
 MAX_LINE = base.GetValue(jsonConfig,'Max_Line_view',verbus=False,ReturnValueForNone=60)
 EXP_PATH = base.GetValue(jsonConfig,'ExportPath',verbus=False,ReturnValueForNone='/tmp')
-GEO_BB_PATH = base.GetValue(jsonConfig,'GeoDatabasePath',TerminateApp=True)
+
+GEO_IS_DISABLE = base.GetValue(jsonConfig,'GeoConfig','GeoIpisDisable',verbus=False,ReturnValueForNone=True)
+GEO_DB_NAME = base.GetValue(jsonConfig,'GeoConfig','GeoDatabasePath')
+MY_GEO_LOCATION = base.GetValue(jsonConfig,'GeoConfig','location')
 
 ####################################################
 
@@ -168,6 +172,15 @@ def LoadLogFile():
     # Regex        
     #url_pattern = re.compile(r'"GET\s(\/[^\s]*)')
 
+    global COUNTRY_COUNTER
+    global TIMEZONE_COUNTER
+    global REGION_COUNTER
+    global CITY_COUNTER
+    COUNTRY_COUNTER = Counter()    
+    TIMEZONE_COUNTER = Counter()    
+    CITY_COUNTER = Counter()
+    REGION_COUNTER = Counter()
+
     global Ip_counter
     global url_counter    
     global Agent_counter
@@ -197,7 +210,7 @@ def LoadLogFile():
                 else:
                     matchFound = True                
                 _rst = ParingLogFileWithFilter(_line)
-                if _rst != '':
+                if _rst != '':                    
                     Ip_counter[_rst[0]] +=1
                     url_counter[_rst[1]] += 1
                     status_code_counter[_rst[2]] += 1                    
@@ -205,6 +218,9 @@ def LoadLogFile():
                         browser_counter[_rst[3]] += 1
                     else:
                         Unknown_Agent_counter[_rst[4]] += 1
+
+                    if GEO_IS_DISABLE is False:
+                        UpdateGepCounter(_rst[5])                        
             if matchFound == False:            
                 msg = """
 The log structure does not match the Nginx log structure.
@@ -230,7 +246,7 @@ In the Nginx config, make sure the path to the access.log."""
             else:
                 matchFound = True
             _rst = ParingLogFileWithFilter(_line)                    
-            if _rst != '':
+            if _rst != '':                
                 Ip_counter[_rst[0]] +=1
                 url_counter[_rst[1]] += 1
                 status_code_counter[_rst[2]] += 1                    
@@ -238,6 +254,9 @@ In the Nginx config, make sure the path to the access.log."""
                     browser_counter[_rst[3]] += 1
                 else:
                     Unknown_Agent_counter[_rst[4]] += 1
+                
+                if GEO_IS_DISABLE is False:
+                    UpdateGepCounter(_rst[5])                    
         if matchFound == False:            
             msg = """
 The log structure does not match of the Nginx container log structure.
@@ -250,11 +269,49 @@ This situation occurs in the following cases:
             base.clearScreen()
             Banner.ParsingLogo()
             print(f'{_y}{msg}{_reset}')            
-            base.FnExit()
-            
-        
+            base.FnExit()            
+
+
+def UpdateGepCounter(_rst):
+    global COUNTRY_COUNTER
+    global TIMEZONE_COUNTER
+    global REGION_COUNTER
+    global CITY_COUNTER
+#    COUNTRY_COUNTER = Counter()    
+#    TIMEZONE_COUNTER = Counter()    
+#    CITY_COUNTER = Counter()
+#    REGION_COUNTER = Counter()
+    
+    __Country = _rst["Country"]    
+    __City = _rst["City"]
+    __Region = _rst["Region"]
+    __TimeZone = _rst["Time Zone"]
+
+    if __Country == '':
+        __Country = 'Not detected'
+    COUNTRY_COUNTER[__Country] +=1
+    if __Region != '':
+        if __Country != "":
+            REGION_COUNTER[f'{__Country} / {__Region}'] +=1
+    if __City != '':
+        if __Country != "":
+            if __Region == "":
+                CITY_COUNTER[f"{__Country} / {__City}"] +=1
+            else:
+                CITY_COUNTER[f"{__Country} / {__Region} / {__City}"] +=1
+    if __TimeZone == '':
+        __TimeZone = 'Not detected'
+    TIMEZONE_COUNTER[__TimeZone] +=1    
+
 
 def ParingLogFileWithFilter(line):    
+        global Agent_counter
+        global All_Agent_counter
+        global UnknowAgentName
+        Agent_counter = Counter()    
+        All_Agent_counter = Counter()
+        UnknowAgentName = ""
+
         AddThisLine = True                
         global CountLogs
         global FirstLine
@@ -275,8 +332,17 @@ def ParingLogFileWithFilter(line):
         ip_address = GetIpFromLine(line,FILTER_IP)
         if ip_address == None:
             AddThisLine = False
-###
-###
+        
+        if GEO_IS_DISABLE is False:
+            LocationLst = GeoIpLocation.GetGeoLocationFromIP(LocationDict=MY_GEO_LOCATION,GeoDB=GEO_DB_NAME,IpAdress=ip_address)        
+            if LocationLst != None:
+                _Country = LocationLst["Country"]
+                GeoLocation = GeoIpLocation.CheckLocationFilter_Country(FILTER_COUNTRY,_Country)
+            AddThisLine = GeoLocation
+        else:
+            LocationLst = None
+
+            
 
         url = GetUrlFromLine(line,FILTER_URL)
         if url == None:
@@ -299,30 +365,9 @@ def ParingLogFileWithFilter(line):
             AddThisLine = False
         
         if AddThisLine:
-            return ip_address, url,StatusCode,agent,user_agent
+            return ip_address, url,StatusCode,agent,user_agent,LocationLst
         else:
             return ''
-
-def GetIpLocation(IpAdress):
-    try:        
-    # Load the GeoLite2 City database
-        with geoip2.database.Reader(GEO_BB_PATH) as reader:
-            response = reader.city(IpAdress)
-        
-        # Extract location information
-            location_data = {
-                "IP": IpAdress,
-                "Country": response.country.name,
-                "Region": response.subdivisions.most_specific.name,
-                "City": response.city.name,
-                "Latitude": response.location.latitude,
-                "Longitude": response.location.longitude,
-                "Time Zone": response.location.time_zone
-        }
-        return location_data
-    except Exception as e:
-        return {"Error": str(e)}
-
     
 
 def GetCodeFromLine(line,CodeFilter = []):##
@@ -433,13 +478,20 @@ def FilterByAgent(line,AgentFilter):
     return None 
 
 
-def printStatus():        
+def printStatus():            
     RowAnalyzed = f"{_b}Row analyzed {_bb} {CountLogs} {_reset}"    
     CountIP = f"{_y}Uniq ip detected  {_by} {len(Ip_counter)} {_w}{_reset}"    
     CountAgent = f"{_g} Unknown agent detected {_blg} {len(Unknown_Agent_counter)} {_w}{_reset}"    
     CountURL = f"{_c} Uniq URL detected {_bc} {len(url_counter)} {_w}{_reset}"    
     LastSync = f'{_B}{_b} at {_bb} {TimeofReadLogFile.strftime("%I:%M:%S %p")} {_w}{_reset}'
     TimeofLog = f'{_w}Log Found From [ {_B}{_w}{From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")}{_reset}{_w} ] to [ {_B}{_w}{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}{_reset}{_w} ]{_reset}'    
+    if GEO_IS_DISABLE is False:
+        CountryStr = f"{_r}Country Detect {_br} {len(COUNTRY_COUNTER)} {_w}{_reset}"
+        TimeZoneStr = f"{_m}Time Zone Detect {_bm} {len(TIMEZONE_COUNTER)} {_w}{_reset}"    
+    COUNTRY_COUNTER
+    
+    TIMEZONE_COUNTER
+
 #    if ManualScope == '':        
 #        TimeofLog = f'{_w}Log Found From [ {_B}{_w}{From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")}{_reset}{_w} ] to [ {_B}{_w}{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}{_reset}{_w} ]{_reset}'    
 #    else:
@@ -449,6 +501,10 @@ def printStatus():
     print ("{:<30}".format(RowAnalyzed + LastSync))
     print("")
     print("{:<30} {:<30} {:<30}".format(CountIP,CountAgent,CountURL))
+    if GEO_IS_DISABLE is False:
+        print("")
+        print("{:<30} {:<30}".format(CountryStr,TimeZoneStr))
+
     print("")
     print ("{:<100}".format(TimeofLog))
 
@@ -868,33 +924,49 @@ def MainMenuAgent():
         
 
 def MainMenu():
+    global GEO_IS_DISABLE
     while True:        
         base.clearScreen()
         Banner.ParsingLogo()    
-        printStatus()    
-        if filterStatus:
-            FilterStr = f'{_y}[ {_br}{_B} ENABLE {_reset}{_y} ]'
+        printStatus()
+        if GEO_IS_DISABLE:
+            _geoColor = _D + _c
         else:
-            FilterStr = f'{_y}[ {_w}Disable {_y}]'    
-        print(f"{_w}")
-        print(f"type [ {_D}{_w}0{_N}{_w} ] quit{_reset}")        
-        print(f"     [ {_c}1{_w} ] {_c}list of IP{_reset}")
-        print(f"     [ {_c}2{_w} ] {_c}list of url{_reset}")
-        print(f"     [ {_c}3{_w} ] {_c}list of Browser{_reset}")
-        print(f"     [ {_c}4{_w} ] {_c}list of Status Code{_reset}")
-        print(f"     [ {_c}5{_w} ] {_c}list of Unknown Agent{_reset}")
-        print(f"     [ {_y}6{_w} ] {_y}Filter/s - {FilterStr}{_reset}")        
-        print(f"     [ {_r}7{_w} ] {_r}Reload Log file{_reset}")
-        print(f"     [ {_b}8{_w} ] {_b}Export to File{_reset}")
+            _geoColor = _c
+
+        if filterStatus:
+            FilterStr = f'{_y}[ {_br}{_B} ON {_reset}{_y} ]'
+        else:
+            FilterStr = f'{_y}[ {_w}OFF{_y} ]'    
+        print(f"{_w}")                
+        print(f"type [ {_D}{_w}0{_N}{_w}  ] quit{_reset}")        
+        print(f"     [ {_c}1{_w}  ] {_c}list of IP{_reset}")
+        print(f"     [ {_c}2{_w}  ] {_c}list of url{_reset}")
+        print(f"     [ {_c}3{_w}  ] {_c}list of Browser{_reset}")
+        print(f"     [ {_c}4{_w}  ] {_c}list of Status Code{_reset}")
+        print(f"     [ {_c}5{_w}  ] {_c}list of Unknown Agent{_reset}")        
+        print(f"     [ {_geoColor}6{_reset}{_w}  ] {_geoColor}list of Country{_reset}")
+        print(f"     [ {_geoColor}7{_reset}{_w}  ] {_geoColor}list of Timezone{_reset}")
+        print(f"     [ {_y}8{_w}  ] {_y}Filter/s - {FilterStr}{_reset}")        
+        print(f"     [ {_r}9{_w}  ] {_r}Reload Log file{_reset}")
+        print(f"     [ {_b}10{_w} ] {_b}Export to File{_reset}")
 
         print("")
-        UserInput = input(f"{_B}{_w}Enter [ {_b}1 ~ 8{_w} ] or press {_b}Enter{_w} for reload :{_reset}")
+        if GEO_IS_DISABLE:
+            print(f"{_w}     IP geolocation is {_r}disabled{_w}. To enable this option, type [ {_y}geo{_w} ].")
+            print(f"{_w}     Enabling this option can increase log analysis time.")
+        print("")            
+        UserInput = input(f"     {_B}{_w}Enter [ {_b}1 ~ 10{_w} ] or press {_b}Enter{_w} for reload :{_reset}")
+
+        if UserInput.strip().lower() == 'geo':
+            GEO_IS_DISABLE = False
+            UserInput = '9'
 
         if UserInput.strip() == "":
-            UserInput = '7'
+            UserInput = '9'
         try:
             _intUserInpt = int(UserInput) 
-            if _intUserInpt <= 8:
+            if _intUserInpt <= 10:
                 return _intUserInpt
         except:            
             base.PrintMessage(messageString=f'Value ({UserInput}) not valid',MsgType="error", AddLine = True, addSpace = 0)        
@@ -922,14 +994,14 @@ def PrimaryMainMenuLuncher():
         NumberInt = GetNumberofFromUser(len(Unknown_Agent_counter))
         FnPrintAgent(Unknown_Agent_counter,NumberInt)
         input("Press Enter to continiue ...")
-    elif UserInput == 6:
+    elif UserInput == 8:
         FilterMenuLuncher(FilterMenu())
-    elif UserInput == 7:    
+    elif UserInput == 9:    
         if LogsMode == 'docker':
             dockerCheck()
         LoadLogFile()
         #LoadVaraiableFromLogs(logs_df)    
-    elif UserInput == 8:
+    elif UserInput == 10:
         ExportMenuLuncher()
     base.clearScreen()    
     PrimaryMainMenuLuncher()
@@ -1675,6 +1747,7 @@ if __name__ == '__main__':
     FILTER_AGENT = base.GetValue(FilterDict,"Browser",verbus=False,ReturnValueForNone=[])
     FILTER_CODE = base.GetValue(FilterDict,"Status_Code",verbus=False,ReturnValueForNone=[])
     FILTER_UNKNOW_AGENT = base.GetValue(FilterDict,"unknow_agent",verbus=False,ReturnValueForNone=[])
+    FILTER_COUNTRY = base.GetValue(FilterDict,"Country",verbus=False,ReturnValueForNone=[])
     ManualScope = base.GetValue(FilterDict,"time",verbus=False,ReturnValueForNone='')
 
     Date_pattern = r'\[(\d{2})/(\w{3})/(\d{4}):(\d{2}):(\d{2}):(\d{2}) [+-]\d{4}\]'
@@ -1687,8 +1760,9 @@ if __name__ == '__main__':
     Code_5xx = []
     Code_4xx_nginx = []
     
-
     #sys.argv.append("a")
+    
+    
 
     if len(sys.argv) == 1:
         AllFilterStatus()
