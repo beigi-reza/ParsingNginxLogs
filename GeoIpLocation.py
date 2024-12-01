@@ -34,7 +34,7 @@ _reset = Style.RESET_ALL
 ##########################################################
 
 
-def GetGeoLocationFromIP(LocationDict:dict,GeoDB,IpAdress:str):
+def GetGeoLocationFromIP(LocationDict:dict,GeoDB,IpAdress:str,FilterOnCountry = []):
     """ Get Ip Location From GeoIpDatabase or list of locaion in config File
     Args: 
         LocationDict : Dict of Localtion From Config File
@@ -45,9 +45,21 @@ def GetGeoLocationFromIP(LocationDict:dict,GeoDB,IpAdress:str):
         if Not Found return None
     """
     LocationLst = IpinLocationList(LocationDict,IpAdress)
-    if LocationLst == None:
+    if LocationLst == None:        
         LocationLst = GetIpLocationFromDatabase(IPAdress=IpAdress,GeoDatabaseName=GeoDB)
-    return LocationLst
+    if LocationLst != None:
+        if FilterOnCountry == []:
+            return LocationLst        
+        else:
+            for _Country in FilterOnCountry:                
+                CountryName = LocationLst["Country"]
+                if re.findall(f'^{_Country.strip().lower()}',CountryName.strip().lower()):
+                    return LocationLst        
+        return None        
+    else:
+        return None
+
+    
 
 
 

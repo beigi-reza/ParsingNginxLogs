@@ -1,41 +1,28 @@
-import requests
-import json
 
+import os
+from time import sleep
 
+def read_file_with_progress(filepath):
+    # Get total number of lines for progress tracking
+    with open(filepath, 'r') as file:
+        total_lines = sum(1 for _ in file)
 
-# Docker socket URL for local communication
-#DOCKER_API_URL = "http+unix://%2Fvar%2Frun%2Fdocker.sock/v1.41/containers/json"
-DOCKER_API_URL = "http://10.1.8.181:2375/v1.41/containers/json"
+    print(f"Total lines: {total_lines}")
+    read_lines = 0
 
-# If using TCP/IP (remote communication), replace with your Docker host and port
-# DOCKER_API_URL = "http://<docker-host-ip>:2375/v1.41/containers/json"
+    # Read file line by line and display progress
+    with open(filepath, 'r') as file:
+        for line in file:
+            # Process each line (replace the sleep with your processing logic)
+            #sleep(0.1)  # Simulating some processing delay
+            read_lines += 1
 
-def list_docker_containers(api_url):
-    try:
-        # Request the list of containers
-        response = requests.get(api_url)
-        
-        # Check for errors
-        if response.status_code == 200:
-            containers = response.json()
-            return containers
-        else:
-            print(f"Error: Unable to fetch containers (Status Code: {response.status_code})")
-            print(response.text)
-            return None
-    except Exception as e:
-        print(f"Exception occurred: {e}")
-        return None
+            # Calculate and display progress
+            progress = (read_lines / total_lines) * 100
+            print(f"Progress: {progress:.2f}%", end="\r")
+    
+    print("\nProcessing completed.")
 
-# Fetch container list
-containers = list_docker_containers(DOCKER_API_URL)
-
-
-with open("data.json", "w") as json_file:
-    json.dump(containers, json_file)
-# Print the results
-if containers:
-    for container in containers:
-        print(f"ID: {container['Id'][:12]}, Names: {container['Names']}, Image: {container['Image']}")
-else:
-    print("No containers found or unable to connect to the Docker API.")
+# Path to your file
+file_path = "/home/beigi/temp/nginx/access.log.1"
+read_file_with_progress(file_path)

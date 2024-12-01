@@ -143,7 +143,7 @@ def ChangeSearchModeLuncher(_GlobalSearchMode):
 if LogsMode == None:
     base.PrintMessage('Section [ParsingMode] not found in config found',MsgType="error",TreminateApp=True,addSpace=0,AddLine=False)
 
-if LogsMode == 'local':
+if LogsMode == 'file':
     LOG_FILE = base.GetValue(jsonConfig,'LocalMode','Log_File',verbus=False)
     if LOG_FILE == None:
         base.PrintMessage('Section [Log_File] not found in config found',MsgType="error",TreminateApp=True,addSpace=0,AddLine=False)        
@@ -163,11 +163,6 @@ def LoadLogFile():
     global From_Date 
     global url_counter
 
-    base.clearScreen()    
-    Banner.PleaseWait()
-    print("")
-    print(f"{_B}{_w} Please Wait for analyze log File{_reset}")            
-    
     TimeofReadLogFile = datetime.now()        
     # Regex        
     #url_pattern = re.compile(r'"GET\s(\/[^\s]*)')
@@ -198,9 +193,18 @@ def LoadLogFile():
     All_Agent_counter = Counter()
     browser_counter = Counter()
     status_code_counter = Counter()
-
     CountLogs = 0
-    if LogsMode == 'local':
+    base.clearScreen()
+    Banner.PleaseWait()
+    if LogsMode == 'file':
+        # Get total number of lines for progress tracking
+        with open(LOG_FILE, 'r') as f:
+            total_lines = sum(1 for _ in f)
+
+        print(f" Total lines: {_B}{_w}{total_lines}{_reset}")
+        read_lines = 0
+    
+        # Read file line by line and display progress
         with open(LOG_FILE, 'r') as f:
             FirstLine = True
             matchFound = False
@@ -218,9 +222,11 @@ def LoadLogFile():
                         browser_counter[_rst[3]] += 1
                     else:
                         Unknown_Agent_counter[_rst[4]] += 1
-
                     if GEO_IS_DISABLE is False:
                         UpdateGepCounter(_rst[5])                        
+                read_lines += 1
+                progress = (read_lines / total_lines) * 100
+                print(f" Progress: {_B}{_y}{progress:.2f}%{_reset}", end="\r")
             if matchFound == False:            
                 msg = """
 The log structure does not match the Nginx log structure.
@@ -238,9 +244,16 @@ In the Nginx config, make sure the path to the access.log."""
     else:
         #logs = CONTAINER.logs().decode("utf-8")
         logs = dockerLib.LoadContainerLog(CONTAINER,DOCKER_IS_LOCAL)
+        total_lines = len(logs.splitlines())
         FirstLine = True
         matchFound = False
-        for _line in logs.splitlines():            
+        processed_length = 0
+        print(f" Total lines: {_B}{_w}{total_lines}{_reset}")
+        for _line in logs.splitlines():
+            processed_length += 1
+            progress = (processed_length / total_lines) * 100
+            #print(f"Progress: {progress:.2f}%", end="\r")
+            print(f" Progress: {_B}{_y}{progress:.2f}%{_reset}", end="\r")
             if re.search(Date_pattern, _line) == None:
                 continue
             else:
@@ -256,7 +269,7 @@ In the Nginx config, make sure the path to the access.log."""
                     Unknown_Agent_counter[_rst[4]] += 1
                 
                 if GEO_IS_DISABLE is False:
-                    UpdateGepCounter(_rst[5])                    
+                    UpdateGepCounter(_rst[5])                
         if matchFound == False:            
             msg = """
 The log structure does not match of the Nginx container log structure.
@@ -334,13 +347,21 @@ def ParingLogFileWithFilter(line):
             AddThisLine = False
         
         if GEO_IS_DISABLE is False:
-            LocationLst = GeoIpLocation.GetGeoLocationFromIP(LocationDict=MY_GEO_LOCATION,GeoDB=GEO_DB_NAME,IpAdress=ip_address)        
-            if LocationLst != None:
-                _Country = LocationLst["Country"]
-                GeoLocation = GeoIpLocation.CheckLocationFilter_Country(FILTER_COUNTRY,_Country)
-            AddThisLine = GeoLocation
+            LocationLst = GeoIpLocation.GetGeoLocationFromIP(LocationDict=MY_GEO_LOCATION,GeoDB=GEO_DB_NAME,IpAdress=ip_address,FilterOnCountry=FILTER_COUNTRY)
+            if LocationLst == None:
+                AddThisLine = False
         else:
             LocationLst = None
+
+                
+
+
+#            if LocationLst != None:
+#                _Country = LocationLst["Country"]
+#                GeoLocation = GeoIpLocation.CheckLocationFilter_Country(FILTER_COUNTRY,_Country)
+#            AddThisLine = GeoLocation
+#        else:
+#            LocationLst = None
 
             
 
@@ -532,7 +553,11 @@ def printStatus():
         if FILTER_UNKNOW_AGENT != []:
             print(f'{_bbw} UNKNOW AGENT {_reset}{_w} : including Unknow Agent ( {_B}{_y} {FILTER_UNKNOW_AGENT} {_reset} )')                                    
             print("")
+        if FILTER_COUNTRY != []:
+            print(f'{_bbw} COUNTRY {_reset}{_w} : including Country ( {_B}{_y} {FILTER_COUNTRY} {_reset} )')                                    
+            print("")
         print(f'{_w}-------------------------- Filter information --------------------------{_reset}')
+
 
 
 def order_dict_by_value(d):
@@ -568,25 +593,58 @@ def FnPrintIP(ListOfIP,MaxPrint = 50):
     print (_w + _B +"{:<5} {:<20} {:<10}".format("No.","IP","Count") + _reset )    
     print("")
     xI = 1
-    for _ in ordered_dict :        
-        if xI <= 5:
-            ClmnColor = _r
-        elif xI <= 10:
-            ClmnColor = _y
-        elif xI <= 15:
-            ClmnColor = _g
-        elif xI <= 20:
-            ClmnColor = _b
-        elif xI <= 25:
-            ClmnColor = _c            
-        else:
-            ClmnColor = _w            
+    for _ in ordered_dict :            
         if xI <= MaxPrint:
-            print (_B + _w + "{:<5} {:<20} {:<10}".format(str(xI),ClmnColor + _ , str(ordered_dict[_])) + _reset )
+            print (_B + _w + "{:<5} {:<20} {:<10}".format(str(xI) ,_ , str(ordered_dict[_])) + _reset )
             xI += 1
         else:
             break    
     base.PrintMessage(messageString="End of List ...", MsgType="notif", AddLine = True, addSpace = 0, BackgroudMsg = False)  
+
+def FnPrintTimeZone(ListOfTimeZone,MaxPrint = 50):
+    ordered_dict = order_dict_by_value(ListOfTimeZone)
+    base.clearScreen()
+    Banner.ParsingLogo()
+    printStatus()
+    print("")
+    if filterStatus is False:
+        print('-------------------------------------    Result    -------------------------------------')
+        print("")
+    print (_w + _B +"{:<5} {:<10} {:<50}".format("No.","Count","Time Zone") + _reset )    
+    print("")
+    x_counter = 1
+    for _TimeZone in ordered_dict:
+        if x_counter <= MaxPrint:
+            print (_B + _w + "{:<5} {:<10} {:<50}".format(str(x_counter),str(ordered_dict[_TimeZone]) ,_TimeZone ) + _reset )
+            x_counter += 1
+def FnPrintCountry(ListOfCountry,printIt,MaxPrint = 50):
+    ordered_dict = order_dict_by_value(ListOfCountry)
+    base.clearScreen()
+    Banner.ParsingLogo()
+    printStatus()
+    print("")
+    if filterStatus is False:
+        print('-------------------------------------    Result    -------------------------------------')
+        print("")
+
+    print (_w + _B +"{:<5} {:<10} {:<50}".format("No.","Count","Location") + _reset )    
+    print("")
+    x_counter = 1
+    for _Country in ordered_dict:
+        if x_counter <= MaxPrint:
+            print (_B + _w + "{:<5} {:<10} {:<50}".format(str(x_counter),str(ordered_dict[_Country]) ,_Country ) + _reset )
+            if printIt :
+                for _region in REGION_COUNTER:
+                    if re.findall(f'^{_Country}',_region):
+                        print (_w + "{:<5} {:<10} {:<50}".format(" "," " ,_region + f"( {str(REGION_COUNTER[_region])} )" ) + _reset )                    
+                        for _city in CITY_COUNTER:
+                            if re.findall(f'^{_region}',_city):                            
+                                print (_w + "{:<5} {:<10} {:<50}".format(" "," " ,_city + f"( {str(CITY_COUNTER[_city])} )" ) + _reset )                    
+            x_counter += 1
+        else:
+            break    
+
+
 def FnPrintAgent(ListOfAgent,MaxPrint = 50):
     ordered_dict = order_dict_by_value(ListOfAgent)
     base.clearScreen()
@@ -600,20 +658,8 @@ def FnPrintAgent(ListOfAgent,MaxPrint = 50):
     print("")
     xI = 1
     for _ in ordered_dict :        
-        if xI <= 5:
-            ClmnColor = _r
-        elif xI <= 10:
-            ClmnColor = _y
-        elif xI <= 15:
-            ClmnColor = _g
-        elif xI <= 20:
-            ClmnColor = _b
-        elif xI <= 25:
-            ClmnColor = _c            
-        else:
-            ClmnColor = _w            
         if xI <= MaxPrint:
-            print (_B + _w + "{:<5} {:<10} {:<100}".format(str(xI),ClmnColor + str(ordered_dict[_]) ,_ ) + _reset )
+            print (_B + _w + "{:<5} {:<10} {:<100}".format(str(xI), str(ordered_dict[_]) ,_ ) + _reset )
             xI += 1
         else:
             break    
@@ -994,6 +1040,31 @@ def PrimaryMainMenuLuncher():
         NumberInt = GetNumberofFromUser(len(Unknown_Agent_counter))
         FnPrintAgent(Unknown_Agent_counter,NumberInt)
         input("Press Enter to continiue ...")
+    elif UserInput == 6:
+        if GEO_IS_DISABLE:
+            base.clearScreen()
+            Banner.ParsingLogo()
+            print("")
+            print(f"{_w}{_B}IP geolocation is {_r}disabled{_w}. for analyzed Logs by {_y}Location information{_w} Enable This Option{_reset}")
+            print("")
+            input(f"{_w}{_D}press enter to continue ...{_reset}")            
+        else:
+            NumberInt = GetNumberofFromUser(len(Ip_counter))        
+            PrintIt = PrinCityandRegion()
+            FnPrintCountry(COUNTRY_COUNTER,MaxPrint=NumberInt,printIt=PrintIt)    
+            input("Press Enter to continiue ...")
+    elif UserInput == 7:
+        if GEO_IS_DISABLE:
+            base.clearScreen()
+            Banner.ParsingLogo()
+            print("")
+            print(f"{_w}{_B}IP geolocation is {_r}disabled{_w}. for analyzed Logs by {_y}Time Zone{_w} Enable This Option{_reset}")
+            print("")
+            input(f"{_w}{_D}press enter to continue ...{_reset}")            
+        else:
+            NumberInt = GetNumberofFromUser(len(Ip_counter))        
+            FnPrintTimeZone(TIMEZONE_COUNTER,MaxPrint=NumberInt)
+            input("Press Enter to continiue ...")
     elif UserInput == 8:
         FilterMenuLuncher(FilterMenu())
     elif UserInput == 9:    
@@ -1051,7 +1122,16 @@ def FilterMenu():
             UnknowStr = f' is {_w}OFF{_reset}'
         else:
             UnknowStr = f' is {_bb} ON {_reset}{_w} : {_y}{FILTER_UNKNOW_AGENT}'
-            
+
+        if FILTER_COUNTRY == []:
+            COUNTRYStr = f' is {_w}OFF{_reset}'
+        else:
+            COUNTRYStr = f' is {_bb} ON {_reset}{_w} : {_y}{FILTER_COUNTRY}'
+
+        if  GEO_IS_DISABLE:
+            _geo = _D + _b
+        else:
+            _geo = _b
         print(f"{_w}")
         print(f"press [ {_D}{_w}Enter{_N}{_w} ] for back to main menu{_reset}")            
         print(f"type  [ {_D}{_w}0{_N}{_w} ] quit{_reset}")                        
@@ -1060,9 +1140,10 @@ def FilterMenu():
         print(f"      [ {_b}3{_w} ] {_b} Filter on Browser{BrwsStr}{_reset}")
         print(f"      [ {_b}4{_w} ] {_b} Filter on Status Code{CodeStr}{_reset}")
         print(f"      [ {_b}5{_w} ] {_b} Filter on Unknow Agent{UnknowStr}{_reset}")        
-        print(f"      [ {_b}6{_w} ] {_b} Filter on Time range{StrTimeRange} {_reset}")        
-        print(f"      [ {_r}7{_w} ] {_r} All Filter Set OFF{_reset}")        
-        print(f"      [ {_c}8{_w} ] {_c} Change search Method {_reset}")        
+        print(f"      [ {_geo}6{_reset}{_w} ] {_geo} Filter on Country{COUNTRYStr} {_reset}")                
+        print(f"      [ {_b}7{_w} ] {_b} Filter on Time range{StrTimeRange} {_reset}")        
+        print(f"      [ {_r}8{_w} ] {_r} All Filter Set OFF{_reset}")        
+        print(f"      [ {_c}9{_w} ] {_c} Change search Method {_reset}")        
         print("")
         UserInput = input(f"{_B}{_w}Enter Command :{_reset}")
         
@@ -1070,7 +1151,7 @@ def FilterMenu():
             return ''
         try:            
             _intUserInpt = int(UserInput) 
-            if _intUserInpt <= 8:
+            if _intUserInpt <= 9:
                 return _intUserInpt
         except:            
             base.PrintMessage(messageString=f'Value ({UserInput}) not valid',MsgType="error", AddLine = True, addSpace = 0)        
@@ -1118,7 +1199,13 @@ def FilterMenuLuncher(UserInput):
         base.clearScreen()
         Banner.ParsingLogo()
         FilterMenuLuncher(FilterMenu())    
-    elif UserInput == 6: ############## FILTER TIME
+
+    elif UserInput == 6: ############## FILTER_COUNTRY
+        CountryMenuLuncher()
+        base.clearScreen()
+        Banner.ParsingLogo()
+        FilterMenuLuncher(FilterMenu())                
+    elif UserInput == 7: ############## FILTER TIME
         base.clearScreen()
         Banner.ParsingLogo()
         global NEW_Date
@@ -1132,13 +1219,13 @@ def FilterMenuLuncher(UserInput):
         base.clearScreen()
         Banner.ParsingLogo()        
         FilterMenuLuncher(FilterMenu())
-    elif UserInput == 7: ############## FILTER IS OFFFFFFF
+    elif UserInput == 8: ############## FILTER IS OFFFFFFF
         base.clearScreen()
         Banner.ParsingLogo()
         filterStatus = False
         AllFilterStatus(AllFilterOff=True)
         FilterMenuLuncher(FilterMenu())
-    elif UserInput == 8: ############## Change Search Method
+    elif UserInput == 9: ############## Change Search Method
         ChangeSearchModeLuncher(GLOBAL_SEARCH_METHOD)
         base.clearScreen()
         Banner.ParsingLogo()
@@ -1357,6 +1444,14 @@ def GetNumberofFromUser(MaxNumber: int):
             IntInput = MaxNumber
     return IntInput
 
+def PrinCityandRegion():    
+    userInput = input(f'{_B}{_w}To view the names of cities and states of each country, enter {_g}yes{_w} or any other key to not display it :')
+    if userInput.lower().strip() == 'yes':
+        return True
+    else:
+        return False
+        
+
 def PrintURL(url_couter,MaxPrint):
     #print(len(url_couter))
     base.clearScreen()
@@ -1518,6 +1613,56 @@ def UnknowAgentMenuFilterLuncher():
             if AgentInput != 'off':
                 FILTER_UNKNOW_AGENT.append(AgentInput)    
 
+def CountryFilterMenu():
+    base.clearScreen()
+    Banner.ParsingLogo()    
+    if FILTER_COUNTRY != []:
+        print("")
+        print(f"{_B}{_w}Filter for Country is Enabled{_reset}")            
+        print(f"{_B}{_w}List of Country:{_reset}")            
+        for _ in FILTER_COUNTRY:
+            print(f"{_B}{_w}            [ {_bm}{_}{_reset}{_w} ]{_reset}")            
+        
+        print(f"{_B}{_g}To remove an Country from the filter list, re-warp it. {_reset}")                        
+        print("")
+
+    print(f"{_w}Press [ {_N}{_w}enter{_reset}{_w} ] for back{_reset}")                    
+    print(f"{_w}Type  [ {_N}{_w}q{_reset}{_w}     ] for quit{_reset}")            
+    print(f"{_w}      [ {_N}{_w}off{_reset}{_w} ] To disable the filter on Country {_reset}")                    
+    print("")
+    UserInput = input(f'{_B}{_w}Enter Country Name or a part of it (starts with it) : ')
+    return UserInput.strip().lower()
+
+
+def CountryMenuLuncher():
+    global FILTER_COUNTRY
+    while True:
+        CountryInput = CountryFilterMenu()
+        if CountryInput == 'q':
+            base.FnExit()
+        elif CountryInput == 'off':
+            FILTER_COUNTRY = []
+        elif CountryInput == '':            
+            break        
+        removeItem = False
+        if FILTER_COUNTRY != []:
+            for x in FILTER_COUNTRY:            
+                if x.lower() == CountryInput:
+                    removeItem = True
+                    break
+        if removeItem:
+            FILTER_COUNTRY.remove(x)
+        else:
+            if CountryInput != 'off':
+                FILTER_COUNTRY.append(CountryInput)    
+        #FILTER_AGENT = tuple(TempFilterList)
+
+
+
+
+
+
+
 def IpFilterMenu():    
     base.clearScreen()
     Banner.ParsingLogo()    
@@ -1573,6 +1718,7 @@ def AllFilterStatus(AllFilterOff = False):
     global FILTER_AGENT
     global FILTER_CODE
     global FILTER_UNKNOW_AGENT
+    global FILTER_COUNTRY
     global ManualScope
     
     if AllFilterOff:
@@ -1580,6 +1726,7 @@ def AllFilterStatus(AllFilterOff = False):
         FILTER_URL = []
         FILTER_AGENT = []
         FILTER_CODE = []
+        FILTER_COUNTRY = []
         ManualScope = ''
         FILTER_UNKNOW_AGENT = []       
     _filterStatus = False
@@ -1595,8 +1742,9 @@ def AllFilterStatus(AllFilterOff = False):
         _filterStatus = True
     if FILTER_UNKNOW_AGENT != []:
         _filterStatus = True
-    filterStatus = _filterStatus
-    
+    if FILTER_COUNTRY != []:
+        _filterStatus = True
+    filterStatus = _filterStatus    
     return _filterStatus
 
 ##
@@ -1667,6 +1815,8 @@ def AnylyseUserInput(UserInput:str):
 #    a = GetCustomDate()
 
 def PrintContainterStatus():
+    global CONTAINER_NAME
+    global CONTAINER_SHORT_ID
     if DOCKER_IS_LOCAL:
         containerNameStr = f'{_w}Container Name : {_B}{_b} {CONTAINER_NAME} {_reset}'
     else:
@@ -1723,10 +1873,10 @@ if __name__ == '__main__':
     elif LogsMode == 'docker':
         import docker
         dockerCheck()        
-        CONTAINER_NAME = ''
-        CONTAINER_STATUS = ''
-        CONTAINER_SHORT_ID = ''
-        DOCKER_IS_LOCAL = False
+#        CONTAINER_NAME = ''
+#        CONTAINER_STATUS = ''
+#        CONTAINER_SHORT_ID = ''
+#        DOCKER_IS_LOCAL = False
 
 
 
@@ -1747,7 +1897,7 @@ if __name__ == '__main__':
     FILTER_AGENT = base.GetValue(FilterDict,"Browser",verbus=False,ReturnValueForNone=[])
     FILTER_CODE = base.GetValue(FilterDict,"Status_Code",verbus=False,ReturnValueForNone=[])
     FILTER_UNKNOW_AGENT = base.GetValue(FilterDict,"unknow_agent",verbus=False,ReturnValueForNone=[])
-    FILTER_COUNTRY = base.GetValue(FilterDict,"Country",verbus=False,ReturnValueForNone=[])
+    FILTER_COUNTRY = base.GetValue(FilterDict,"Country",verbus=False,ReturnValueForNone=[])    
     ManualScope = base.GetValue(FilterDict,"time",verbus=False,ReturnValueForNone='')
 
     Date_pattern = r'\[(\d{2})/(\w{3})/(\d{4}):(\d{2}):(\d{2}):(\d{2}) [+-]\d{4}\]'
