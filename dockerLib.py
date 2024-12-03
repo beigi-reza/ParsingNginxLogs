@@ -2,6 +2,7 @@ from colorama import Fore, Back, Style
 import docker
 import requests
 import lib.BaseFunction as base
+import Banner
 
 ####################################################
 ####################################################
@@ -42,7 +43,7 @@ def FetchListDockerContainers(Server:str,port:str,DockerIsLocal:str ):
     else:    
         try:
             params = {"all": "true"}
-            response = requests.get(DOCKER_API_URL_CONTAINER,params)                
+            response = requests.get(DOCKER_API_URL_CONTAINER,params, timeout = 5)
             if response.status_code == 200:
                 containers = response.json()
                 return containers
@@ -106,6 +107,9 @@ def CheckContainerStatus():
         
 
 def LoadContainerLog(container_name,dockerIsLocal):
+#    print("")
+#    print("Please Wait For fetch log from Docker ...")
+#    print("")
     if dockerIsLocal:
         try:
             logs = container_name.logs().decode("utf-8")

@@ -45,7 +45,7 @@ _reset = Style.RESET_ALL
 current_directory = os.path.dirname(os.path.realpath(__file__))
 JsonConfigFile = f"{current_directory}/config/config.json"
 jsonConfig = base.LoadJsonFile(JsonConfigFile)
-LogsMode = base.GetValue(jsonConfig,'ParsingMode',verbus=False)
+LogsMode = base.GetValue(jsonConfig,'ParsingMode',verbus=False).lower()
 GLOBAL_SEARCH_METHOD = base.GetValue(jsonConfig,'SearchMode',verbus=False,ReturnValueForNone='')
 GLOBAL_SEARCH_METHOD_ALIAS = ''
 SEARCHDISCRIPTION = ''
@@ -171,10 +171,12 @@ def LoadLogFile():
     global TIMEZONE_COUNTER
     global REGION_COUNTER
     global CITY_COUNTER
+    global REFERER_COUNTER
     COUNTRY_COUNTER = Counter()    
     TIMEZONE_COUNTER = Counter()    
     CITY_COUNTER = Counter()
-    REGION_COUNTER = Counter()
+    REGION_COUNTER = Counter()    
+    REFERER_COUNTER = Counter()
 
     global Ip_counter
     global url_counter    
@@ -218,12 +220,13 @@ def LoadLogFile():
                     Ip_counter[_rst[0]] +=1
                     url_counter[_rst[1]] += 1
                     status_code_counter[_rst[2]] += 1                    
+                    REFERER_COUNTER[_rst[5]] += 1
                     if _rst[3] != 'unknow':
                         browser_counter[_rst[3]] += 1
                     else:
-                        Unknown_Agent_counter[_rst[4]] += 1
+                        Unknown_Agent_counter[_rst[4]] += 1                        
                     if GEO_IS_DISABLE is False:
-                        UpdateGepCounter(_rst[5])                        
+                        UpdateGepCounter(_rst[6])                        
                 read_lines += 1
                 progress = (read_lines / total_lines) * 100
                 print(f" Progress: {_B}{_y}{progress:.2f}%{_reset}", end="\r")
@@ -263,10 +266,11 @@ In the Nginx config, make sure the path to the access.log."""
                 Ip_counter[_rst[0]] +=1
                 url_counter[_rst[1]] += 1
                 status_code_counter[_rst[2]] += 1                    
+                REFERER_COUNTER[_rst[5]] += 1
                 if _rst[3] != 'unknow':
                     browser_counter[_rst[3]] += 1
                 else:
-                    Unknown_Agent_counter[_rst[4]] += 1
+                    Unknown_Agent_counter[_rst[6]] += 1
                 
                 if GEO_IS_DISABLE is False:
                     UpdateGepCounter(_rst[5])                
@@ -353,17 +357,11 @@ def ParingLogFileWithFilter(line):
         else:
             LocationLst = None
 
-                
-
-
-#            if LocationLst != None:
-#                _Country = LocationLst["Country"]
-#                GeoLocation = GeoIpLocation.CheckLocationFilter_Country(FILTER_COUNTRY,_Country)
-#            AddThisLine = GeoLocation
-#        else:
-#            LocationLst = None
-
-            
+        Referer = GetRefererFromLine(line,FILTER_REFERER)        
+        if Referer == '-':
+            Referer = '[ EMPTY (-) ]'
+        if Referer == None:
+            AddThisLine = False                        
 
         url = GetUrlFromLine(line,FILTER_URL)
         if url == None:
@@ -386,7 +384,7 @@ def ParingLogFileWithFilter(line):
             AddThisLine = False
         
         if AddThisLine:
-            return ip_address, url,StatusCode,agent,user_agent,LocationLst
+            return ip_address, url,StatusCode,agent,user_agent,Referer,LocationLst
         else:
             return ''
     
@@ -434,6 +432,19 @@ def GetIpFromLine(line,IpFilter = []):
                 FindIp = SearchIt(_Ip,ip_address)
                 if FindIp:
                     return ip_address            
+        return None        
+
+def GetRefererFromLine(line,RefererFilter = []):
+    log_format = r'(?P<ip>[\d\.]+) - - \[(?P<time>[^\]]+)\] "(?P<method>[A-Z]+) (?P<url>[^ ]+) HTTP/[0-9.]+" (?P<status>\d{3}) (?P<size>\d+) "(?P<referer>[^"]*)" "(?P<user_agent>[^"]*)"'    
+    match = re.match(log_format, line)
+    if match:
+        referer = match.group('referer')
+        if RefererFilter == []:
+            return referer
+        else:
+            for _referer in RefererFilter:
+                if SearchIt(_referer,referer):
+                    return referer
         return None        
 
 def GetUrlFromLine(line,URLFilter = []):##
@@ -504,6 +515,7 @@ def printStatus():
     CountIP = f"{_y}Uniq ip detected  {_by} {len(Ip_counter)} {_w}{_reset}"    
     CountAgent = f"{_g} Unknown agent detected {_blg} {len(Unknown_Agent_counter)} {_w}{_reset}"    
     CountURL = f"{_c} Uniq URL detected {_bc} {len(url_counter)} {_w}{_reset}"    
+    CountRef = f"{_b} Uniq Referer detected {_bb} {len(REFERER_COUNTER)} {_w}{_reset}"    
     LastSync = f'{_B}{_b} at {_bb} {TimeofReadLogFile.strftime("%I:%M:%S %p")} {_w}{_reset}'
     TimeofLog = f'{_w}Log Found From [ {_B}{_w}{From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")}{_reset}{_w} ] to [ {_B}{_w}{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}{_reset}{_w} ]{_reset}'    
     if GEO_IS_DISABLE is False:
@@ -521,7 +533,7 @@ def printStatus():
         PrintContainterStatus()        
     print ("{:<30}".format(RowAnalyzed + LastSync))
     print("")
-    print("{:<30} {:<30} {:<30}".format(CountIP,CountAgent,CountURL))
+    print("{:<30} {:<30} {:<30} {:<30}".format(CountIP,CountAgent,CountURL,CountRef))
     if GEO_IS_DISABLE is False:
         print("")
         print("{:<30} {:<30}".format(CountryStr,TimeZoneStr))
@@ -532,9 +544,8 @@ def printStatus():
     if filterStatus:        
 
         print("")
-        print(f'{_w}-------------------------- Filter information --------------------------{_reset}')    
+        print(f'{_w}--------------------------------------- Filter information [ {_b}{GLOBAL_SEARCH_METHOD_ALIAS} {_w}] ---------------------------------------{_reset}')    
         print("")
-
         if ManualScope != '':                    
             print(f'{_bbw} TIME {_reset}{_w} : Time Range for ( {_B}{_y} {ManualScope.upper()} {_reset}{_w} ) from [ {_B}{_y}{From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")}{_reset}{_w} ] to [ {_B}{_y}{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}{_reset}{_w} ] {_reset}')                    
             print("")
@@ -553,10 +564,13 @@ def printStatus():
         if FILTER_UNKNOW_AGENT != []:
             print(f'{_bbw} UNKNOW AGENT {_reset}{_w} : including Unknow Agent ( {_B}{_y} {FILTER_UNKNOW_AGENT} {_reset} )')                                    
             print("")
+        if FILTER_REFERER != []:
+            print(f'{_bbw} REFERER {_reset}{_w} : including Referer ( {_B}{_y} {FILTER_REFERER} {_reset} )')                                    
+            print("")
         if FILTER_COUNTRY != []:
             print(f'{_bbw} COUNTRY {_reset}{_w} : including Country ( {_B}{_y} {FILTER_COUNTRY} {_reset} )')                                    
             print("")
-        print(f'{_w}-------------------------- Filter information --------------------------{_reset}')
+        print(f'{_w}--------------------------------------- Filter information [ {_b}{GLOBAL_SEARCH_METHOD_ALIAS} {_w}] ---------------------------------------{_reset}')    
 
 
 
@@ -644,6 +658,25 @@ def FnPrintCountry(ListOfCountry,printIt,MaxPrint = 50):
         else:
             break    
 
+def FnPrintReferer(listOfReferer,MaxPrint = 50):
+    ordered_dict = order_dict_by_value(listOfReferer)
+    base.clearScreen()
+    Banner.ParsingLogo()
+    printStatus()
+    print("")
+    if filterStatus is False:
+        print('-------------------------------------    Result    -------------------------------------')
+        print("")
+    print (_w + _B +"{:<5} {:<10} {:<100}".format("No.","Count","Referer") + _reset )    
+    print("")
+    xI = 1
+    for _ in ordered_dict :        
+        if xI <= MaxPrint:
+            print (_B + _w + "{:<5} {:<10} {:<100}".format(str(xI), str(ordered_dict[_]) ,_ ) + _reset )
+            xI += 1
+        else:
+            break    
+    base.PrintMessage(messageString="End of List ...", MsgType="notif", AddLine = True, addSpace = 0, BackgroudMsg = False)  
 
 def FnPrintAgent(ListOfAgent,MaxPrint = 50):
     ordered_dict = order_dict_by_value(ListOfAgent)
@@ -712,16 +745,26 @@ def ExportMenu():
             FilterStr = f'{_y}[ {_br}{_B} ENABLE {_reset}{_y} ]'
         else:
             FilterStr = f'{_y}[ {_w}Disable {_y}]'    
+        
+        if GEO_IS_DISABLE:
+            _geo = _D + _y
+        else:
+            _geo = _N + _y
+
         print(f"{_w}")
-        print(f"press [ {_D}{_w}enter{_N}{_w} ] for Main Menu")
-        print(f"type  [ {_D}{_w}0{_N}{_w} ] quit{_reset}")
-        print(f"      [ {_D}{_y}1{_N}{_w} ] Export Summary as text File")
-        print(f"      [ {_D}{_y}2{_N}{_w} ] Export IP (CSV)")
-        print(f"      [ {_D}{_y}3{_N}{_w} ] Export URL (CSV)")
-        print(f"      [ {_D}{_y}4{_N}{_w} ] Export Browser (CSV)")
-        print(f"      [ {_D}{_y}5{_N}{_w} ] Export Status Code (CSV)")
-        print(f"      [ {_D}{_y}6{_N}{_w} ] Export Unknown Agent (CSV)")
-        print(f"      [ {_D}{_y}7{_N}{_w} ] Export All Agent (CSV)")
+        print(f"press [ {_N}{_w}enter{_N}{_w} ] for Main Menu")
+        print(f"type  [ {_N}{_w}0{_w}  ] quit{_reset}")
+        print(f"      [ {_N}{_y}1{_w}  ] Export Summary as text File")
+        print(f"      [ {_N}{_y}2{_w}  ] Export IP (CSV)")
+        print(f"      [ {_N}{_y}3{_w}  ] Export URL (CSV)")
+        print(f"      [ {_N}{_y}4{_w}  ] Export Browser (CSV)")
+        print(f"      [ {_N}{_y}5{_w}  ] Export Status Code (CSV)")
+        print(f"      [ {_N}{_y}6{_w}  ] Export Unknown Agent (CSV)")
+        print(f"      [ {_N}{_y}7{_w}  ] Export All Agent (CSV)")
+        print(f"      [ {_geo}8{_w}  ] Export All Country")
+        print(f"      [ {_geo}9{_w}  ] Export All Country (Without Region & City)")        
+        print(f"      [ {_geo}10{_w} ] Export All TimeZone (CSV)")
+
         print("")
         UserInput = input(f"{_B}{_w}Enter Command :{_reset}")
         #for _i in ['q','','txt','i','u','b','c','ua','aa']:
@@ -729,7 +772,7 @@ def ExportMenu():
             return ''
         try:
             _intUserInpt = int(UserInput) 
-            if _intUserInpt <= 7:
+            if _intUserInpt <= 10:
                 return _intUserInpt
         except:            
             base.PrintMessage(messageString=f'Value ({UserInput}) not valid',MsgType="error", AddLine = True, addSpace = 0)        
@@ -752,7 +795,53 @@ def ExportMenuLuncher():
         ExportUnknownAgentInCSV()
     elif UserInput == 7:
         ExportAllAgentInCSV()
+    elif UserInput == 8:
+        if GEO_IS_DISABLE:
+            print(f"IP geolocation is {_r}disabled. for analyzed Logs by {_g}Location information{_w} Enable This Option{_reset}")            
+            input(f"{_D}{_w}press enter to continue ...")
+        else:
+            ExportCountry(Withcity=True)
+    elif UserInput == 9:
+        if GEO_IS_DISABLE:
+            print(f"IP geolocation is {_r}disabled. for analyzed Logs by {_g}Location information{_w} Enable This Option{_reset}")            
+            input (f"{_D}{_w}press enter to continue ...")
+        else:
+            ExportCountry()
+    elif UserInput == 10:
+        if GEO_IS_DISABLE:
+            print(f"IP geolocation is {_r}disabled. for analyzed Logs by {_g}Time Zone information{_w} Enable This Option{_reset}")            
+            input (f"{_D}{_w}press enter to continue ...")
+        else:
+            ExportAllTimeZone()
 
+
+
+def ExportCountry(Withcity=False):
+    Ordered_Country = order_dict_by_value(COUNTRY_COUNTER)
+    CountryList = []
+    CountryList.append('Count,Country,')
+    for _ in Ordered_Country:
+        _x = Ordered_Country[_]
+        CountryList.append(f"{_x},{_}")            
+        if Withcity :
+            for _region in REGION_COUNTER:
+                if re.findall(f'^{_}',_region):
+                    CountryList.append(f"{REGION_COUNTER[_region]},{_region}")                    
+                    for _city in CITY_COUNTER:
+                        if re.findall(f'^{_region}',_city):                            
+                            CountryList.append(f"{CITY_COUNTER[_city]},{_city}")                                                        
+    CreateFile(List4Save=CountryList,FileName='Country',Ext='csv')
+        
+def ExportAllTimeZone():
+    Ordered_ZimeZone = order_dict_by_value(TIMEZONE_COUNTER)
+    AllTimeZone = []
+    AllTimeZone.append('Count,Time Zone')
+    for _ in Ordered_ZimeZone:
+        _x = Ordered_ZimeZone[_]
+        AllTimeZone.append(f"{_x},{_}")
+    CreateFile(List4Save=AllTimeZone,FileName='time-Zone',Ext='csv')
+    
+    
 
 def ExportAllAgentInCSV():
     Ordered_AllAgent = order_dict_by_value(All_Agent_counter)
@@ -839,7 +928,9 @@ def ExportTextFile():
             TextLst.append(f'[   Browser   ] Filter on Browser is ON including items received from one of the browsers {FILTER_AGENT}.')        
         if FILTER_CODE != []:
             TextLst.append(f'[   Status Code   ] Filter on HTTP response status codes is ON including items received from one of the browsers {FILTER_CODE} .')            
-        TextLst.append(f'--------------------------------------   Filter information   --------------------------------------')
+        if FILTER_COUNTRY != []:
+            TextLst.append(f'[   Country   ] Filter on Country is ON including items received from one of the Country {FILTER_CODE} .')            
+        TextLst.append(f'--------------------------------------   Filter information   --------------------------------------')        
         TextLst.append("")        
 
 
@@ -912,6 +1003,52 @@ def ExportTextFile():
             _counterNo += 1
         else:
             break	        
+
+
+
+    ## ADD Country
+    if GEO_IS_DISABLE is False:
+        ordered_dict = order_dict_by_value(COUNTRY_COUNTER)
+        x_counter = 1
+        TextLst.append("")
+        TextLst.append("List of Country :")
+        TextLst.append("")
+        TextLst.append(f'No / Count / Country ')	
+        TextLst.append("")
+
+        for _Country in ordered_dict:
+            if x_counter <= MAX_LINE:
+                TextLst.append(f"{str(x_counter)}   {str(ordered_dict[_Country])}   {_Country}")        
+                for _region in REGION_COUNTER:
+                    if re.findall(f'^{_Country}',_region):                    
+                        TextLst.append(f"       {_region}( {str(REGION_COUNTER[_region])} ) ")        
+                        for _city in CITY_COUNTER:
+                            if re.findall(f'^{_region}',_city):                                                        
+                                TextLst.append(f"      {_city}( {str(CITY_COUNTER[_city])} ) ")                                                                
+                x_counter += 1
+            else:
+                break
+
+    ## ADD Timezone
+    if GEO_IS_DISABLE is False:
+        ordered_dict = order_dict_by_value(TIMEZONE_COUNTER)
+        x_counter = 1
+        TextLst.append("")
+        TextLst.append("List of Time Zone :")
+        TextLst.append("")
+        TextLst.append(f'No / Count / TimeZome ')	
+        TextLst.append("")
+
+        for _ in ordered_dict :
+                if x_counter <= MAX_LINE:         
+                    TextLst.append(f"{str(x_counter)}    {str(ordered_dict[_])}      {_} ")
+                    x_counter += 1
+                else:
+                    break	        
+
+
+
+
     CreateFile(List4Save=TextLst,FileName='nginx_Parsing_logs',Ext='txt')
     #### Create File
 #    try:
@@ -991,11 +1128,12 @@ def MainMenu():
         print(f"     [ {_c}3{_w}  ] {_c}list of Browser{_reset}")
         print(f"     [ {_c}4{_w}  ] {_c}list of Status Code{_reset}")
         print(f"     [ {_c}5{_w}  ] {_c}list of Unknown Agent{_reset}")        
-        print(f"     [ {_geoColor}6{_reset}{_w}  ] {_geoColor}list of Country{_reset}")
-        print(f"     [ {_geoColor}7{_reset}{_w}  ] {_geoColor}list of Timezone{_reset}")
-        print(f"     [ {_y}8{_w}  ] {_y}Filter/s - {FilterStr}{_reset}")        
-        print(f"     [ {_r}9{_w}  ] {_r}Reload Log file{_reset}")
-        print(f"     [ {_b}10{_w} ] {_b}Export to File{_reset}")
+        print(f"     [ {_c}6{_w}  ] {_c}list of Referer{_reset}")        
+        print(f"     [ {_geoColor}7{_reset}{_w}  ] {_geoColor}list of Country{_reset}")
+        print(f"     [ {_geoColor}8{_reset}{_w}  ] {_geoColor}list of Timezone{_reset}")
+        print(f"     [ {_y}9{_w}  ] {_y}Filter/s - {FilterStr}{_reset}")        
+        print(f"     [ {_r}10{_w} ] {_r}Reload Log file{_reset}")
+        print(f"     [ {_b}11{_w} ] {_b}Export to File{_reset}")
 
         print("")
         if GEO_IS_DISABLE:
@@ -1006,13 +1144,13 @@ def MainMenu():
 
         if UserInput.strip().lower() == 'geo':
             GEO_IS_DISABLE = False
-            UserInput = '9'
+            UserInput = '10'
 
         if UserInput.strip() == "":
-            UserInput = '9'
+            UserInput = '1'
         try:
             _intUserInpt = int(UserInput) 
-            if _intUserInpt <= 10:
+            if _intUserInpt <= 11:
                 return _intUserInpt
         except:            
             base.PrintMessage(messageString=f'Value ({UserInput}) not valid',MsgType="error", AddLine = True, addSpace = 0)        
@@ -1041,6 +1179,10 @@ def PrimaryMainMenuLuncher():
         FnPrintAgent(Unknown_Agent_counter,NumberInt)
         input("Press Enter to continiue ...")
     elif UserInput == 6:
+        NumberInt = GetNumberofFromUser(len(Unknown_Agent_counter))
+        FnPrintReferer(REFERER_COUNTER,NumberInt)
+        input("Press Enter to continiue ...")
+    elif UserInput == 7:
         if GEO_IS_DISABLE:
             base.clearScreen()
             Banner.ParsingLogo()
@@ -1053,7 +1195,7 @@ def PrimaryMainMenuLuncher():
             PrintIt = PrinCityandRegion()
             FnPrintCountry(COUNTRY_COUNTER,MaxPrint=NumberInt,printIt=PrintIt)    
             input("Press Enter to continiue ...")
-    elif UserInput == 7:
+    elif UserInput == 8:
         if GEO_IS_DISABLE:
             base.clearScreen()
             Banner.ParsingLogo()
@@ -1065,14 +1207,14 @@ def PrimaryMainMenuLuncher():
             NumberInt = GetNumberofFromUser(len(Ip_counter))        
             FnPrintTimeZone(TIMEZONE_COUNTER,MaxPrint=NumberInt)
             input("Press Enter to continiue ...")
-    elif UserInput == 8:
+    elif UserInput == 9:
         FilterMenuLuncher(FilterMenu())
-    elif UserInput == 9:    
+    elif UserInput == 10:    
         if LogsMode == 'docker':
             dockerCheck()
         LoadLogFile()
         #LoadVaraiableFromLogs(logs_df)    
-    elif UserInput == 10:
+    elif UserInput == 11:
         ExportMenuLuncher()
     base.clearScreen()    
     PrimaryMainMenuLuncher()
@@ -1128,22 +1270,28 @@ def FilterMenu():
         else:
             COUNTRYStr = f' is {_bb} ON {_reset}{_w} : {_y}{FILTER_COUNTRY}'
 
-        if  GEO_IS_DISABLE:
+        if FILTER_REFERER == []:
+            StrReferer = f' is {_w}OFF{_reset}'
+        else:
+            StrReferer = f' is {_bb} ON {_reset}{_w} : {_y}{FILTER_REFERER}'
+
+        if  GEO_IS_DISABLE:            
             _geo = _D + _b
         else:
             _geo = _b
         print(f"{_w}")
         print(f"press [ {_D}{_w}Enter{_N}{_w} ] for back to main menu{_reset}")            
-        print(f"type  [ {_D}{_w}0{_N}{_w} ] quit{_reset}")                        
-        print(f"      [ {_b}1{_w} ] {_b} Filter on IP{StrIP}{_reset}")
-        print(f"      [ {_b}2{_w} ] {_b} Filter on url{StrURL}{_reset}")
-        print(f"      [ {_b}3{_w} ] {_b} Filter on Browser{BrwsStr}{_reset}")
-        print(f"      [ {_b}4{_w} ] {_b} Filter on Status Code{CodeStr}{_reset}")
-        print(f"      [ {_b}5{_w} ] {_b} Filter on Unknow Agent{UnknowStr}{_reset}")        
-        print(f"      [ {_geo}6{_reset}{_w} ] {_geo} Filter on Country{COUNTRYStr} {_reset}")                
-        print(f"      [ {_b}7{_w} ] {_b} Filter on Time range{StrTimeRange} {_reset}")        
-        print(f"      [ {_r}8{_w} ] {_r} All Filter Set OFF{_reset}")        
-        print(f"      [ {_c}9{_w} ] {_c} Change search Method {_reset}")        
+        print(f"type  [ {_D}{_w}0{_N}{_w}  ] quit{_reset}")                        
+        print(f"      [ {_b}1{_w}  ] {_b} Filter on IP{StrIP}{_reset}")
+        print(f"      [ {_b}2{_w}  ] {_b} Filter on url{StrURL}{_reset}")
+        print(f"      [ {_b}3{_w}  ] {_b} Filter on Browser{BrwsStr}{_reset}")
+        print(f"      [ {_b}4{_w}  ] {_b} Filter on Status Code{CodeStr}{_reset}")
+        print(f"      [ {_b}5{_w}  ] {_b} Filter on Unknow Agent{UnknowStr}{_reset}")        
+        print(f"      [ {_geo}6{_reset}{_w}  ] {_geo} Filter on Country{COUNTRYStr} {_reset}")                
+        print(f"      [ {_b}7{_w}  ] {_b} Filter on Time range{StrTimeRange} {_reset}")        
+        print(f"      [ {_b}8{_w}  ] {_b} Filter on Referer{StrReferer} {_reset}")        
+        print(f"      [ {_r}9{_w}  ] {_r} All Filter Set OFF{_reset}")        
+        print(f"      [ {_c}10{_w} ] {_c} Change search Method {_reset}")        
         print("")
         UserInput = input(f"{_B}{_w}Enter Command :{_reset}")
         
@@ -1219,13 +1367,20 @@ def FilterMenuLuncher(UserInput):
         base.clearScreen()
         Banner.ParsingLogo()        
         FilterMenuLuncher(FilterMenu())
-    elif UserInput == 8: ############## FILTER IS OFFFFFFF
+    elif UserInput == 8: ############## FILTER IS Referer
+        base.clearScreen()
+        Banner.ParsingLogo()
+        filterStatus = False
+        AllFilterStatus(AllFilterOff=True)
+        input("Commitghfg")
+
+    elif UserInput == 9: ############## FILTER IS OFFFFFFF
         base.clearScreen()
         Banner.ParsingLogo()
         filterStatus = False
         AllFilterStatus(AllFilterOff=True)
         FilterMenuLuncher(FilterMenu())
-    elif UserInput == 9: ############## Change Search Method
+    elif UserInput == 10: ############## Change Search Method
         ChangeSearchModeLuncher(GLOBAL_SEARCH_METHOD)
         base.clearScreen()
         Banner.ParsingLogo()
@@ -1719,6 +1874,7 @@ def AllFilterStatus(AllFilterOff = False):
     global FILTER_CODE
     global FILTER_UNKNOW_AGENT
     global FILTER_COUNTRY
+    global FILTER_REFERER
     global ManualScope
     
     if AllFilterOff:
@@ -1729,6 +1885,7 @@ def AllFilterStatus(AllFilterOff = False):
         FILTER_COUNTRY = []
         ManualScope = ''
         FILTER_UNKNOW_AGENT = []       
+        FILTER_REFERER = []
     _filterStatus = False
     if ManualScope != '':
         _filterStatus = True
@@ -1743,6 +1900,8 @@ def AllFilterStatus(AllFilterOff = False):
     if FILTER_UNKNOW_AGENT != []:
         _filterStatus = True
     if FILTER_COUNTRY != []:
+        _filterStatus = True
+    if FILTER_REFERER != []:
         _filterStatus = True
     filterStatus = _filterStatus    
     return _filterStatus
@@ -1898,6 +2057,7 @@ if __name__ == '__main__':
     FILTER_CODE = base.GetValue(FilterDict,"Status_Code",verbus=False,ReturnValueForNone=[])
     FILTER_UNKNOW_AGENT = base.GetValue(FilterDict,"unknow_agent",verbus=False,ReturnValueForNone=[])
     FILTER_COUNTRY = base.GetValue(FilterDict,"Country",verbus=False,ReturnValueForNone=[])    
+    FILTER_REFERER = base.GetValue(FilterDict,"Referer",verbus=False,ReturnValueForNone=[])    
     ManualScope = base.GetValue(FilterDict,"time",verbus=False,ReturnValueForNone='')
 
     Date_pattern = r'\[(\d{2})/(\w{3})/(\d{4}):(\d{2}):(\d{2}):(\d{2}) [+-]\d{4}\]'

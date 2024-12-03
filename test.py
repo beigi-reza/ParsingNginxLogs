@@ -1,28 +1,46 @@
+import re
+from collections import OrderedDict,Counter
 
-import os
-from time import sleep
+def order_dict_by_value(d):
+    """Orders a dictionary by its values in descending order.
 
-def read_file_with_progress(filepath):
-    # Get total number of lines for progress tracking
-    with open(filepath, 'r') as file:
-        total_lines = sum(1 for _ in file)
+    Args:
+        d: The dictionary to be ordered.
 
-    print(f"Total lines: {total_lines}")
-    read_lines = 0
+    Returns:
+        An OrderedDict with the same keys and values as the input dictionary,
+        but ordered by value in descending order.
+    """
 
-    # Read file line by line and display progress
-    with open(filepath, 'r') as file:
-        for line in file:
-            # Process each line (replace the sleep with your processing logic)
-            #sleep(0.1)  # Simulating some processing delay
-            read_lines += 1
+    return OrderedDict(sorted(d.items(), key=lambda item: item[1], reverse=True))
 
-            # Calculate and display progress
-            progress = (read_lines / total_lines) * 100
-            print(f"Progress: {progress:.2f}%", end="\r")
-    
-    print("\nProcessing completed.")
 
-# Path to your file
-file_path = "/home/beigi/temp/nginx/access.log.1"
-read_file_with_progress(file_path)
+# Define the log format regex
+log_format = r'(?P<ip>[\d\.]+) - - \[(?P<time>[^\]]+)\] "(?P<method>[A-Z]+) (?P<url>[^ ]+) HTTP/[0-9.]+" (?P<status>\d{3}) (?P<size>\d+) "(?P<referer>[^"]*)" "(?P<user_agent>[^"]*)"'
+
+# Path to your Nginx log file
+log_file_path = "/home/beigi/temp/nginx/access.log.1"
+
+# Counter to store occurrences of referers
+referer_counter = Counter()
+
+# Parse the log file
+with open(log_file_path, 'r') as log_file:
+    for line in log_file:
+        match = re.match(log_format, line)
+        if match:
+            # Extract the referer field
+            referer = match.group('referer')
+            # Increment count for the referer
+            referer_counter[referer] += 1
+
+
+
+
+
+# Print the results
+print("Referer counts:")
+ordereeee = order_dict_by_value(referer_counter)
+
+for _ in ordereeee:
+    print(f"{_}: {ordereeee[_]}")    

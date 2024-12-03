@@ -1,5 +1,5 @@
 {
-    "ParsingMode" : "file",
+    "ParsingMode" : "docker",
     "Max_Line_view" : 60,
     "ExportPath" : "/home/beigi/temp/nginx/exp",
     "SearchMode" : "start",    
@@ -52,7 +52,8 @@
         "Status_Code" : [],
         "unknow_agent" : [],
         "time" : "",
-        "Country" : []
+        "Country" : [],
+        "Referer" : ["voglertools"]
     }
 
 }

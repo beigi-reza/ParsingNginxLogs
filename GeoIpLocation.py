@@ -121,16 +121,16 @@ def GetIpLocationFromDatabase(IPAdress,GeoDatabaseName):
         return None
 
 
-def CheckLocationFilter_Country(Filter_Country,CountryName):
-    if Filter_Country == []:
-        return True
-    elif CountryName.strip() == '':
-        return True
-    else:
-        for _ in Filter_Country:
-            if _.lower().strip() == CountryName.strip().lower():
-                return True
-    return False        
+#def CheckLocationFilter_Country(Filter_Country,CountryName):
+#    if Filter_Country == []:
+#        return True
+#    elif CountryName.strip() == '':
+#        return True
+#    else:
+#        for _ in Filter_Country:
+#            if _.lower().strip() == CountryName.strip().lower():
+#                return True
+#    return False        
 
 
 ##########################################################
