@@ -50,10 +50,10 @@
         "url" : [],
         "Browser" : [],
         "Status_Code" : [],
-        "unknow_agent" : [],
+        "unknow_agent" : ["cxvcv"],
         "time" : "",
         "Country" : [],
-        "Referer" : ["voglertools"]
+        "Referer" : []
     }
 
 }

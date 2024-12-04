@@ -1140,7 +1140,7 @@ def MainMenu():
             print(f"{_w}     IP geolocation is {_r}disabled{_w}. To enable this option, type [ {_y}geo{_w} ].")
             print(f"{_w}     Enabling this option can increase log analysis time.")
         print("")            
-        UserInput = input(f"     {_B}{_w}Enter [ {_b}1 ~ 10{_w} ] or press {_b}Enter{_w} for reload :{_reset}")
+        UserInput = input(f"     {_B}{_w}Enter [ {_b}1 ~ 11{_w} ] or press {_b}Enter{_w} for reload :{_reset}")
 
         if UserInput.strip().lower() == 'geo':
             GEO_IS_DISABLE = False
@@ -1299,7 +1299,7 @@ def FilterMenu():
             return ''
         try:            
             _intUserInpt = int(UserInput) 
-            if _intUserInpt <= 9:
+            if _intUserInpt <= 10:
                 return _intUserInpt
         except:            
             base.PrintMessage(messageString=f'Value ({UserInput}) not valid',MsgType="error", AddLine = True, addSpace = 0)        
@@ -1368,12 +1368,10 @@ def FilterMenuLuncher(UserInput):
         Banner.ParsingLogo()        
         FilterMenuLuncher(FilterMenu())
     elif UserInput == 8: ############## FILTER IS Referer
+        RefererFilterMenuLuncher()
         base.clearScreen()
-        Banner.ParsingLogo()
-        filterStatus = False
-        AllFilterStatus(AllFilterOff=True)
-        input("Commitghfg")
-
+        Banner.ParsingLogo()                
+        FilterMenuLuncher(FilterMenu())
     elif UserInput == 9: ############## FILTER IS OFFFFFFF
         base.clearScreen()
         Banner.ParsingLogo()
@@ -1682,6 +1680,49 @@ def ConvertDateinLog2RealTime(DateMatch):
     log_date = datetime(int(L_year), L_month, int(L_day), int(L_hour), int(L_minute), int(L_second))
     return log_date
 
+def RefererFilterMenu():
+    base.clearScreen()
+    Banner.ParsingLogo()    
+    if FILTER_REFERER != []:
+        print("")
+        print(f"{_B}{_w}Filter for Referer is Enabled{_reset}")            
+        print(f"{_B}{_w}List of Referer:{_reset}")            
+        for _ in FILTER_REFERER:
+            print(f"{_B}{_w}            [ {_bm}{_}{_reset}{_w} ]{_reset}")            
+        
+        print(f"{_B}{_g}To remove a Referer from the filter list, re-warp it. {_reset}")                        
+        print("")
+
+    print(f"{_w}type  [ {_N}{_w}q{_reset}{_w}     ] for quit{_reset}")        
+    print(f"{_w}      [ {_N}{_w}enter{_reset}{_w} ] for back{_reset}")                    
+    print(f"{_w}      [ {_N}{_w}off{_reset}{_w} ] To disable the filter on URL {_reset}")                    
+    UserInput = input(f'{_B}{_w}Enter Referer or part of it: ')
+    return UserInput.strip().lower()
+
+
+def RefererFilterMenuLuncher():
+    global FILTER_REFERER
+    while True:
+        RefererInput = RefererFilterMenu()
+        if RefererInput == 'q':
+            base.FnExit()
+        elif RefererInput == 'off':
+            FILTER_REFERER = []
+        elif RefererInput == '':            
+            break        
+        removeItem = False
+        if FILTER_REFERER != []:
+            for x in FILTER_REFERER:
+                if x.lower() == RefererInput:
+                    removeItem = True
+                    break
+        if removeItem:
+            FILTER_REFERER.remove(x)
+        else:
+            if RefererInput != 'off':
+                FILTER_REFERER.append(RefererInput)
+
+
 
 def UrlFilterMenu():
     base.clearScreen()
@@ -1701,6 +1742,7 @@ def UrlFilterMenu():
     print(f"{_w}      [ {_N}{_w}off{_reset}{_w} ] To disable the filter on URL {_reset}")                    
     UserInput = input(f'{_B}{_w}Enter URL or part of it: ')
     return UserInput.strip().lower()
+
 
 def UrlFilterMenuLuncher():
     global FILTER_URL
@@ -2081,4 +2123,5 @@ if __name__ == '__main__':
         PrimaryMainMenuLuncher()
     else:
         print("---------")    
+        
 
