@@ -64,7 +64,10 @@ def CheckContainerExists(ContainerName,dockerIsLocal):
 
     ListofContainer = FetchListDockerContainers(Server,port,dockerIsLocal)
     if ListofContainer == None:
-        base.PrintMessage('An error occurred',TreminateApp=True)
+        print("")
+        print(f"{_B}{_r}An error occurred while connecting to Docker and retrieving container data.")
+        print("")
+        base.FnExit()
     elif len(ListofContainer) == 0:
         print("")
         print(f"{_B}{_r}No running containers found.")
@@ -95,6 +98,13 @@ def CheckContainerStatus():
         _Localserver = False
 
     _Container = CheckContainerExists(_ContainerName,_Localserver)
+    if _Container == None:
+        base.clearScreen()
+        Banner.ParsingLogo()
+        print("")        
+        print(f"{_B}{_r} Container [ {_w}{_ContainerName}{_r} ] not found in Server [ {_w}{_Server}{_r} ].{_reset}")
+        print("")
+        base.FnExit()
     if _Localserver:    
         Container_name = _Container.name
         Container_status = _Container.status
