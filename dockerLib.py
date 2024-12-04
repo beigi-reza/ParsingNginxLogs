@@ -101,9 +101,14 @@ def CheckContainerStatus():
     if _Container == None:
         base.clearScreen()
         Banner.ParsingLogo()
-        print("")        
-        print(f"{_B}{_r} Container [ {_w}{_ContainerName}{_r} ] not found in Server [ {_w}{_Server}{_r} ].{_reset}")
-        print("")
+        if _Localserver:
+            print("")        
+            print(f"{_B}{_r} Container [ {_w}{_ContainerName}{_r} ] not found on {_w} LOCAL {_r} docker.{_reset}")
+            print("")            
+        else:                
+            print("")        
+            print(f"{_B}{_r} Container [ {_w}{_ContainerName}{_r} ] not found in Server [ {_w}{_Server}{_r} ].{_reset}")
+            print("")
         base.FnExit()
     if _Localserver:    
         Container_name = _Container.name
@@ -140,6 +145,8 @@ def LoadContainerLog(container_name,dockerIsLocal):
             print(f"An error occurred: {e}")            
             return None
     return logs
+
+
 
 
 #####################################
