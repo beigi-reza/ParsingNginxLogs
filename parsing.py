@@ -761,9 +761,10 @@ def ExportMenu():
         print(f"      [ {_N}{_y}5{_w}  ] Export Status Code (CSV)")
         print(f"      [ {_N}{_y}6{_w}  ] Export Unknown Agent (CSV)")
         print(f"      [ {_N}{_y}7{_w}  ] Export All Agent (CSV)")
-        print(f"      [ {_geo}8{_w}  ] Export All Country")
-        print(f"      [ {_geo}9{_w}  ] Export All Country (Without Region & City)")        
-        print(f"      [ {_geo}10{_w} ] Export All TimeZone (CSV)")
+        print(f"      [ {_geo}8{_w}  ] Export Country")
+        print(f"      [ {_geo}9{_w}  ] Export Country (Without Region & City)")        
+        print(f"      [ {_geo}10{_w} ] Export TimeZone (CSV)")
+        print(f"      [ {_N}{_y}11{_w} ] Export Referer (CSV)")
 
         print("")
         UserInput = input(f"{_B}{_w}Enter Command :{_reset}")
@@ -772,7 +773,7 @@ def ExportMenu():
             return ''
         try:
             _intUserInpt = int(UserInput) 
-            if _intUserInpt <= 10:
+            if _intUserInpt <= 11:
                 return _intUserInpt
         except:            
             base.PrintMessage(messageString=f'Value ({UserInput}) not valid',MsgType="error", AddLine = True, addSpace = 0)        
@@ -812,7 +813,9 @@ def ExportMenuLuncher():
             print(f"IP geolocation is {_r}disabled. for analyzed Logs by {_g}Time Zone information{_w} Enable This Option{_reset}")            
             input (f"{_D}{_w}press enter to continue ...")
         else:
-            ExportAllTimeZone()
+            ExportAllTimeZone()            
+    elif UserInput == 11:
+        ExportRefererinCSV()
 
 
 
@@ -880,6 +883,16 @@ def ExportURLinCSV():
         UtlList.append(f"{_x},{_}")
     CreateFile(List4Save=UtlList,FileName='Url',Ext='csv')
 
+def ExportRefererinCSV():
+    ordered_Referer = order_dict_by_value(REFERER_COUNTER)
+    RefererList = []
+    RefererList.append('Count,Referer URL')
+    for _ in ordered_Referer:
+        _x = ordered_Referer[_]
+        RefererList.append(f"{_x},{_}")
+    CreateFile(List4Save=RefererList,FileName='Referer',Ext='csv')
+
+
 def ExportBrowserInCSV():
     ordered_browser = order_dict_by_value(browser_counter)    
     BrowserList = []
@@ -930,6 +943,9 @@ def ExportTextFile():
             TextLst.append(f'[   Status Code   ] Filter on HTTP response status codes is ON including items received from one of the browsers {FILTER_CODE} .')            
         if FILTER_COUNTRY != []:
             TextLst.append(f'[   Country   ] Filter on Country is ON including items received from one of the Country {FILTER_CODE} .')            
+        if FILTER_REFERER != []:
+            TextLst.append(f'[   Referer   ] Filter on Referer is ON including items received from one of the Referer {FILTER_CODE} .')            
+
         TextLst.append(f'--------------------------------------   Filter information   --------------------------------------')        
         TextLst.append("")        
 
@@ -1045,6 +1061,22 @@ def ExportTextFile():
                     x_counter += 1
                 else:
                     break	        
+
+    ### ADD Referer
+
+    ordered_Referer = order_dict_by_value(REGION_COUNTER)
+    _counterNo = 1
+    TextLst.append("")
+    TextLst.append("Referer :")
+    TextLst.append("")    
+    TextLst.append("No. / Count / Referer(URL) ")	
+    TextLst.append("")
+    for _ in ordered_url :
+        if _counterNo <= MAX_LINE:         
+            TextLst.append(f"{str(_counterNo)}    {str(ordered_url[_])}      {_} ")
+            _counterNo += 1
+        else:
+            break	        
 
 
 

@@ -50,7 +50,7 @@
         "url" : [],
         "Browser" : [],
         "Status_Code" : [],
-        "unknow_agent" : ["cxvcv"],
+        "unknow_agent" : [],
         "time" : "",
         "Country" : [],
         "Referer" : []
