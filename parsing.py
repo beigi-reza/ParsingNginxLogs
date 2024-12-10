@@ -1424,6 +1424,12 @@ def FilterMenuLuncher(UserInput):
     global FILTER_CODE
     global FILTER_UNKNOW_AGENT
     global filterStatus
+    global Code_1xx
+    global Code_2xx 
+    global Code_3xx 
+    global Code_4xx 
+    global Code_5xx 
+    global Code_4xx_nginx
     if UserInput == 0:
         base.FnExit()
     elif UserInput == 1: ############## FILTER IP
@@ -1445,7 +1451,13 @@ def FilterMenuLuncher(UserInput):
     elif UserInput == 4: ############## FILTER CODE
         Code_Filter = StatusCodeFilterMenu()
         if Code_Filter == 'off':
-            FILTER_CODE = []        
+            FILTER_CODE = []
+            Code_1xx = []
+            Code_2xx = []
+            Code_3xx = []
+            Code_4xx = []
+            Code_5xx = []
+            Code_4xx_nginx = []
         base.clearScreen()
         Banner.ParsingLogo()
         FilterMenuLuncher(FilterMenu())                
@@ -1531,7 +1543,7 @@ def StatusCodeFilterMenu():
             
 
 def StatusCodeUpdater(UserInput):
-    global Code_1xx 
+    global Code_1xx
     global Code_2xx 
     global Code_3xx 
     global Code_4xx 
@@ -1558,22 +1570,40 @@ def StatusCodeUpdater(UserInput):
         Code_4xx_nginx = All_NginxStatusCode
     else:
         try:
-            intUserinput = int(UserInput)
+            intUserinput = int(UserInput)            
         except:
             return None    
-                
+                        
         if intUserinput in All_StatusCode_1x:
-            Code_1xx.append(int(UserInput))
+            if intUserinput in Code_1xx:
+                Code_1xx.remove(int(UserInput))
+            else:
+                Code_1xx.append(int(UserInput))            
         elif intUserinput in All_StatusCode_2x:
-            Code_2xx.append(int(UserInput))
+            if intUserinput in Code_2xx:
+                Code_2xx.remove(int(UserInput))
+            else:
+                Code_2xx.append(int(UserInput))                                
         elif intUserinput in All_StatusCode_3x:
-            Code_3xx.append(int(UserInput))
+            if intUserinput in Code_3xx:
+                Code_3xx.remove(int(UserInput))
+            else:
+                Code_3xx.append(int(UserInput))                                            
         elif intUserinput in All_StatusCode_4x:
-            Code_4xx.append(int(UserInput))
+            if intUserinput in Code_4xx:
+                Code_4xx.remove(int(UserInput))
+            else:
+                Code_4xx.append(int(UserInput))                                            
         elif intUserinput in All_StatusCode_5x:
-            Code_5xx.append(int(UserInput))
+            if intUserinput in Code_5xx:
+                Code_5xx.remove(int(UserInput))
+            else:
+                Code_5xx.append(int(UserInput))
         elif intUserinput in All_NginxStatusCode:
-            Code_4xx_nginx.append(int(UserInput))
+            if intUserinput in Code_4xx_nginx:
+                Code_4xx_nginx.remove(int(UserInput))
+            else:
+                Code_4xx_nginx.append(int(UserInput))                                                        
         else:
             return None    
 
@@ -2026,11 +2056,28 @@ def AllFilterStatus(AllFilterOff = False):
     global FILTER_REFERER
     global ManualScope
     
+    global Code_1xx
+    global Code_2xx 
+    global Code_3xx 
+    global Code_4xx 
+    global Code_5xx 
+    global Code_4xx_nginx
+    
+
     if AllFilterOff:
         FILTER_IP = []
         FILTER_URL = []
         FILTER_AGENT = []
         FILTER_CODE = []
+        #
+        Code_1xx = []
+        Code_2xx = []
+        Code_3xx = []
+        Code_4xx = []
+        Code_5xx = []
+        Code_4xx_nginx = []
+        #
+
         FILTER_COUNTRY = []
         ManualScope = ''
         FILTER_UNKNOW_AGENT = []       
