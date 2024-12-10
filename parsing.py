@@ -154,9 +154,20 @@ elif LogsMode == 'docker':
 else:
     base.PrintMessage('Value section [LogsMode] not detected ',MsgType="error",TreminateApp=True,addSpace=0,AddLine=False)                
 
+def read_file_once(file_path):
+    # Static variable to store the file content
+    if not hasattr(read_file_once, "_file_content"):
+        try:
+            with open(file_path, "r") as file:
+                # Read and store the file content
+                read_file_once._file_content = file.read()
+        except FileNotFoundError:
+            print(f"Error: File not found at {file_path}")
+            read_file_once._file_content = None
+    return read_file_once._file_content
 
 
-def LoadLogFile():
+def LoadLogFile(ReloadLog = False):
     global TimeofReadLogFile
     global CountLogs
     global To_Date
@@ -187,6 +198,7 @@ def LoadLogFile():
     global status_code_counter
     global UnknowAgentName
     global FirstLine    
+    global LogsStr
     UnknowAgentName = ""
     url_counter = Counter()
     Ip_counter = Counter()    
@@ -200,38 +212,79 @@ def LoadLogFile():
     Banner.PleaseWait()
     if LogsMode == 'file':
         # Get total number of lines for progress tracking
-        with open(LOG_FILE, 'r') as f:
-            total_lines = sum(1 for _ in f)
-
-        print(f" Total lines: {_B}{_w}{total_lines}{_reset}")
+#        with open(LOG_FILE, 'r') as f:
+#            total_lines = sum(1 for _ in f)
         read_lines = 0
     
-        # Read file line by line and display progress
-        with open(LOG_FILE, 'r') as f:
-            FirstLine = True
-            matchFound = False
-            for _line in f:                
-                if re.search(Date_pattern, _line) == None:
-                    continue
+        #################
+        #################
+        #################
+        try:        
+            if LogsStr == str: # Check Variable get data
+                pass
+        except:
+            ReloadLog = True
+
+        if ReloadLog:
+            LogsStr = read_file_once(LOG_FILE)
+        total_lines = len(LogsStr.splitlines())
+        print(f" Total lines: {_B}{_w}{total_lines}{_reset}")
+
+        FirstLine = True
+        matchFound = False
+
+        for _line in LogsStr.splitlines():
+            if re.search(Date_pattern, _line) == None:
+                continue
+            else:
+                matchFound = True                
+            _rst = ParingLogFileWithFilter(_line)
+            if _rst != '':                    
+                Ip_counter[_rst["IP"]] +=1
+                url_counter[_rst["URL"]] += 1
+                status_code_counter[_rst["CODE"]] += 1                    
+                REFERER_COUNTER[_rst["REFERER"]] += 1
+                if _rst["BORWSER"] != 'unknow':
+                    browser_counter[_rst["BORWSER"]] += 1
                 else:
-                    matchFound = True                
-                _rst = ParingLogFileWithFilter(_line)
-                if _rst != '':                    
-                    Ip_counter[_rst[0]] +=1
-                    url_counter[_rst[1]] += 1
-                    status_code_counter[_rst[2]] += 1                    
-                    REFERER_COUNTER[_rst[5]] += 1
-                    if _rst[3] != 'unknow':
-                        browser_counter[_rst[3]] += 1
-                    else:
-                        Unknown_Agent_counter[_rst[4]] += 1                        
-                    if GEO_IS_DISABLE is False:
-                        UpdateGepCounter(_rst[6])                        
-                read_lines += 1
-                progress = (read_lines / total_lines) * 100
-                print(f" Progress: {_B}{_y}{progress:.2f}%{_reset}", end="\r")
-            if matchFound == False:            
-                msg = """
+                    Unknown_Agent_counter[_rst["ALL_AGENT"]] += 1                        
+                if GEO_IS_DISABLE is False:
+                    UpdateGepCounter(_rst["GEO"])                        
+            read_lines += 1
+            progress = (read_lines / total_lines) * 100
+            print(f" Progress: {_B}{_y}{progress:.2f}%{_reset}", end="\r")
+
+        #################
+        #################
+        #################
+
+
+        # Read file line by line and display progress
+#        with open(LOG_FILE, 'r') as f:            
+#            FirstLine = True
+#            matchFound = False
+#            for _line in f:                
+#                if re.search(Date_pattern, _line) == None:
+#                    continue
+#                else:
+#                    matchFound = True                
+#                _rst = ParingLogFileWithFilter(_line)
+#                if _rst != '':                    
+#                    Ip_counter[_rst[0]] +=1
+#                    url_counter[_rst[1]] += 1
+#                    status_code_counter[_rst[2]] += 1                    
+#                    REFERER_COUNTER[_rst[5]] += 1
+#                    if _rst[3] != 'unknow':
+#                        browser_counter[_rst[3]] += 1
+#                    else:
+#                        Unknown_Agent_counter[_rst[4]] += 1                        
+#                    if GEO_IS_DISABLE is False:
+#                        UpdateGepCounter(_rst[6])                        
+#                read_lines += 1
+#                progress = (read_lines / total_lines) * 100
+#                print(f" Progress: {_B}{_y}{progress:.2f}%{_reset}", end="\r")
+        if matchFound == False:            
+            msg = """
 The log structure does not match the Nginx log structure.
 This situation occurs in the following cases:
 
@@ -240,19 +293,29 @@ This situation occurs in the following cases:
 
 In the Nginx config, make sure the path to the access.log."""
 
-                base.clearScreen()
-                Banner.ParsingLogo()
-                print(f'{_y}{msg}{_reset}')            
-                base.FnExit()
+            base.clearScreen()
+            Banner.ParsingLogo()
+            print(f'{_y}{msg}{_reset}')            
+            base.FnExit()
     else:
-        #logs = CONTAINER.logs().decode("utf-8")
-        logs = dockerLib.LoadContainerLog(CONTAINER,DOCKER_IS_LOCAL)
-        total_lines = len(logs.splitlines())
+        #logs = CONTAINER.logs().decode("utf-8")        
+        try:        
+            if LogsStr == str: # Check Variable get data
+                pass
+        except:            
+            ReloadLog = True
+        if ReloadLog:            
+            print(f"{_B}{_w} Fetch Log From Docker Container ....")
+            LogsStr = dockerLib.LoadContainerLog(CONTAINER,DOCKER_IS_LOCAL)            
+            base.clearScreen()
+            Banner.PleaseWait()    
+
+        total_lines = len(LogsStr.splitlines())
         FirstLine = True
         matchFound = False
         processed_length = 0
         print(f" Total lines: {_B}{_w}{total_lines}{_reset}")
-        for _line in logs.splitlines():
+        for _line in LogsStr.splitlines():
             processed_length += 1
             progress = (processed_length / total_lines) * 100
             #print(f"Progress: {progress:.2f}%", end="\r")
@@ -263,17 +326,17 @@ In the Nginx config, make sure the path to the access.log."""
                 matchFound = True
             _rst = ParingLogFileWithFilter(_line)                    
             if _rst != '':                
-                Ip_counter[_rst[0]] +=1
-                url_counter[_rst[1]] += 1
-                status_code_counter[_rst[2]] += 1                    
-                REFERER_COUNTER[_rst[5]] += 1
-                if _rst[3] != 'unknow':
-                    browser_counter[_rst[3]] += 1
+                Ip_counter[_rst["IP"]] +=1
+                url_counter[_rst["URL"]] += 1
+                status_code_counter[_rst["CODE"]] += 1                    
+                REFERER_COUNTER[_rst["REFERER"]] += 1
+                if _rst["BORWSER"] != 'unknow':
+                    browser_counter[_rst["BORWSER"]] += 1
                 else:
-                    Unknown_Agent_counter[_rst[6]] += 1
+                    Unknown_Agent_counter[_rst["ALL_AGENT"]] += 1
                 
                 if GEO_IS_DISABLE is False:
-                    UpdateGepCounter(_rst[5])                
+                    UpdateGepCounter(_rst["GEO"])                                    
         if matchFound == False:            
             msg = """
 The log structure does not match of the Nginx container log structure.
@@ -384,7 +447,17 @@ def ParingLogFileWithFilter(line):
             AddThisLine = False
         
         if AddThisLine:
-            return ip_address, url,StatusCode,agent,user_agent,Referer,LocationLst
+            _rtn = {}
+            _rtn.update({"IP"  : ip_address,
+                        "URL" : url,
+                        "CODE" : StatusCode,
+                        "BORWSER" : agent,
+                        "ALL_AGENT" : user_agent,
+                        "REFERER" : Referer,
+                        "GEO" : LocationLst,
+                        })
+            #return ip_address, url,StatusCode,agent,user_agent,Referer,LocationLst
+            return _rtn
         else:
             return ''
     
@@ -547,7 +620,7 @@ def printStatus():
         print(f'{_w}--------------------------------------- Filter information [ {_b}{GLOBAL_SEARCH_METHOD_ALIAS} {_w}] ---------------------------------------{_reset}')    
         print("")
         if ManualScope != '':                    
-            print(f'{_bbw} TIME {_reset}{_w} : Time Range for ( {_B}{_y} {ManualScope.upper()} {_reset}{_w} ) from [ {_B}{_y}{From_Date.strftime("%a %d %b %Y - %I:%M:%S %p")}{_reset}{_w} ] to [ {_B}{_y}{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}{_reset}{_w} ] {_reset}')                    
+            print(f'{_bbw} TIME {_reset}{_w} : Time Range for ( {_B}{_y} {ManualScope.upper()} {_reset}{_w} ) from [ {_B}{_y}{NEW_Date.strftime("%a %d %b %Y - %I:%M:%S %p")}{_reset}{_w} ] to [ {_B}{_y}{To_Date.strftime("%a %d %b %Y - %I:%M:%S %p" )}{_reset}{_w} ] {_reset}')                    
             print("")
         if FILTER_IP != []:            
             print(f'{_bbw} IP {_reset}{_w} : including IPs ( {_B}{_y} {FILTER_IP} {_reset} )')
@@ -1176,7 +1249,7 @@ def MainMenu():
 
         if UserInput.strip().lower() == 'geo':
             GEO_IS_DISABLE = False
-            UserInput = '10'
+            return "geo"
 
         if UserInput.strip() == "":
             UserInput = '1'
@@ -1243,9 +1316,11 @@ def PrimaryMainMenuLuncher():
         FilterMenuLuncher(FilterMenu())
     elif UserInput == 10:    
         if LogsMode == 'docker':
-            dockerCheck()
-        LoadLogFile()
+            dockerCheck()        
+        LoadLogFile(ReloadLog=True)
         #LoadVaraiableFromLogs(logs_df)    
+    elif UserInput == 'geo':
+        LoadLogFile(ReloadLog=False)
     elif UserInput == 11:
         ExportMenuLuncher()
     base.clearScreen()    
@@ -2151,7 +2226,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         AllFilterStatus()
         CheckSearchMode(GLOBAL_SEARCH_METHOD)
-        LoadLogFile()
+        LoadLogFile(ReloadLog=True)
         PrimaryMainMenuLuncher()
     else:
         print("---------")    
