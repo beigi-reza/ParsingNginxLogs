@@ -1,23 +1,16 @@
-# Define a function to read and store file content
-def read_file_once(file_path):
-    # Static variable to store the file content
-    if not hasattr(read_file_once, "_file_content"):
-        try:
-            with open(file_path, "r") as file:
-                # Read and store the file content
-                read_file_once._file_content = file.read()
-        except FileNotFoundError:
-            print(f"Error: File not found at {file_path}")
-            read_file_once._file_content = None
-    return read_file_once._file_content
+import re
 
-# Usage example
-file_path = "/home/beigi/temp/nginx/access.log.1"
+# Sample log line
+log_line = 'nginx    | 10.100.52.254 - - [24/Dec/2024:11:26:04 +0330] "GET /img/media/products/rh-1277/catalog-638101606868747748.pdf HTTP/1.1" 200 169186 "-" "Screaming Frog SEO Spider/19.8" "213.61.45.115"'
 
-# First call reads and stores the content
-file_content = read_file_once(file_path)
-#print("First read:", file_content)
+# Regex pattern to extract the real IP (last IP in quotes)
+real_ip_pattern = r'"(\d+\.\d+\.\d+\.\d+)"$'
 
-# Subsequent calls reuse the stored content
-file_content_again = read_file_once(file_path)
-print("Second read (reused):", file_content_again)
+# Search for the real IP
+match = re.search(real_ip_pattern, log_line)
+
+if match:
+    real_ip = match.group(1)
+    print("Real IP Address:", real_ip)
+else:
+    print("Real IP Address not found")

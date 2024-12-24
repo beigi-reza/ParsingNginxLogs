@@ -2,6 +2,7 @@
 from colorama import Fore, Back, Style
 import signal
 import lib.BaseFunction as base
+import lib.AsciArt as AsciArt
 import re
 import os
 from datetime import datetime, timedelta
@@ -46,6 +47,7 @@ current_directory = os.path.dirname(os.path.realpath(__file__))
 JsonConfigFile = f"{current_directory}/config/config.json"
 jsonConfig = base.LoadJsonFile(JsonConfigFile)
 LogsMode = base.GetValue(jsonConfig,'ParsingMode',verbus=False).lower()
+Proxy_or_LoadBalance = base.GetValue(jsonConfig,'Proxy_or_LoadBalance',verbus=False,ReturnValueForNone='false')
 GLOBAL_SEARCH_METHOD = base.GetValue(jsonConfig,'SearchMode',verbus=False,ReturnValueForNone='')
 GLOBAL_SEARCH_METHOD_ALIAS = ''
 SEARCHDISCRIPTION = ''
@@ -54,7 +56,6 @@ SEARCHDISCRIPTION = ''
 MAX_LINE = base.GetValue(jsonConfig,'Max_Line_view',verbus=False,ReturnValueForNone=60)
 EXP_PATH = base.GetValue(jsonConfig,'ExportPath',verbus=False,ReturnValueForNone='/tmp')
 
-GEO_IS_DISABLE = base.GetValue(jsonConfig,'GeoConfig','GeoIpisDisable',verbus=False,ReturnValueForNone=True)
 GEO_DB_NAME = base.GetValue(jsonConfig,'GeoConfig','GeoDatabasePath')
 MY_GEO_LOCATION = base.GetValue(jsonConfig,'GeoConfig','location')
 
@@ -238,7 +239,7 @@ def LoadLogFile(ReloadLog = False):
                 continue
             else:
                 matchFound = True                
-            _rst = ParingLogFileWithFilter(_line)
+            _rst = ParingLogFileWithFilter(_line)            
             if _rst != '':                    
                 Ip_counter[_rst["IP"]] +=1
                 url_counter[_rst["URL"]] += 1
@@ -248,8 +249,8 @@ def LoadLogFile(ReloadLog = False):
                     browser_counter[_rst["BORWSER"]] += 1
                 else:
                     Unknown_Agent_counter[_rst["ALL_AGENT"]] += 1                        
-                if GEO_IS_DISABLE is False:
-                    UpdateGepCounter(_rst["GEO"])                        
+#                if GEO_IS_DISABLE is False:
+#                    UpdateGepCounter(_rst["GEO"])                        
             read_lines += 1
             progress = (read_lines / total_lines) * 100
             print(f" Progress: {_B}{_y}{progress:.2f}%{_reset}", end="\r")
@@ -324,7 +325,14 @@ In the Nginx config, make sure the path to the access.log."""
                 continue
             else:
                 matchFound = True
-            _rst = ParingLogFileWithFilter(_line)                    
+            _rst = ParingLogFileWithFilter(_line)                                
+#        if GEO_IS_DISABLE is False:
+#            LocationLst = GeoIpLocation.GetGeoLocationFromIP(LocationDict=MY_GEO_LOCATION,GeoDB=GEO_DB_NAME,IpAdress=ip_address,FilterOnCountry=FILTER_COUNTRY)
+#            if LocationLst == None:
+#                AddThisLine = False
+#        else:
+#            LocationLst = None
+
             if _rst != '':                
                 Ip_counter[_rst["IP"]] +=1
                 url_counter[_rst["URL"]] += 1
@@ -335,8 +343,9 @@ In the Nginx config, make sure the path to the access.log."""
                 else:
                     Unknown_Agent_counter[_rst["ALL_AGENT"]] += 1
                 
-                if GEO_IS_DISABLE is False:
-                    UpdateGepCounter(_rst["GEO"])                                    
+#                if GEO_IS_DISABLE is False:
+#                    UpdateGepCounter(_rst["GEO"])                                    
+        
         if matchFound == False:            
             msg = """
 The log structure does not match of the Nginx container log structure.
@@ -345,12 +354,20 @@ This situation occurs in the following cases:
   - The log path is redirected to a file in the Nginx configuration.
   - The container has just been started and has not yet received any requests in the browser.
 """
-
+        
             base.clearScreen()
             Banner.ParsingLogo()
             print(f'{_y}{msg}{_reset}')            
-            base.FnExit()            
+            base.FnExit()
+        else:
+            AnalyzedDetectedIpFromGeo()    
 
+def AnalyzedDetectedIpFromGeo():
+    AddThisLine = True
+    for ip_address in Ip_counter:
+        LocationLst = GeoIpLocation.GetGeoLocationFromIP(LocationDict=MY_GEO_LOCATION,GeoDB=GEO_DB_NAME,IpAdress=ip_address,FilterOnCountry=FILTER_COUNTRY)
+        if LocationLst != None:            
+           UpdateGepCounter(LocationLst)     
 
 def UpdateGepCounter(_rst):
     global COUNTRY_COUNTER
@@ -413,12 +430,12 @@ def ParingLogFileWithFilter(line):
         if ip_address == None:
             AddThisLine = False
         
-        if GEO_IS_DISABLE is False:
-            LocationLst = GeoIpLocation.GetGeoLocationFromIP(LocationDict=MY_GEO_LOCATION,GeoDB=GEO_DB_NAME,IpAdress=ip_address,FilterOnCountry=FILTER_COUNTRY)
-            if LocationLst == None:
-                AddThisLine = False
-        else:
-            LocationLst = None
+#        if GEO_IS_DISABLE is False:
+#            LocationLst = GeoIpLocation.GetGeoLocationFromIP(LocationDict=MY_GEO_LOCATION,GeoDB=GEO_DB_NAME,IpAdress=ip_address,FilterOnCountry=FILTER_COUNTRY)
+#            if LocationLst == None:
+#                AddThisLine = False
+#        else:
+#            LocationLst = None
 
         Referer = GetRefererFromLine(line,FILTER_REFERER)        
         if Referer == '-':
@@ -453,8 +470,7 @@ def ParingLogFileWithFilter(line):
                         "CODE" : StatusCode,
                         "BORWSER" : agent,
                         "ALL_AGENT" : user_agent,
-                        "REFERER" : Referer,
-                        "GEO" : LocationLst,
+                        "REFERER" : Referer,                        
                         })
             #return ip_address, url,StatusCode,agent,user_agent,Referer,LocationLst
             return _rtn
@@ -493,8 +509,11 @@ def SearchIt(search_term,phrase,SearchMode=''):
     return FindIt
 
 def GetIpFromLine(line,IpFilter = []):
-    IP_pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
-    IpMatch = re.search(IP_pattern, line)            
+    if Proxy_or_LoadBalance:
+        IP_pattern = r'"(\d+\.\d+\.\d+\.\d+)"$'
+    else:
+        IP_pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'    
+    IpMatch = re.search(IP_pattern, line)        
     if IpMatch: 
         ip_address = IpMatch.group(1)        
         if IpFilter == []:
@@ -606,12 +625,19 @@ def printStatus():
         PrintContainterStatus()        
     print ("{:<30}".format(RowAnalyzed + LastSync))
     print("")
-    print("{:<30} {:<30} {:<30} {:<30}".format(CountIP,CountAgent,CountURL,CountRef))
-    if GEO_IS_DISABLE is False:
-        print("")
-        print("{:<30} {:<30}".format(CountryStr,TimeZoneStr))
-
+    print("{:<30} {:<30} {:<30} {:<30}".format(CountIP,CountAgent,CountURL,CountRef))    
     print("")
+    if len(Ip_counter) < 5:
+            if CountLogs > 1000 :
+                Proxy_text =f"""We found that IP addresses may not be recognized properly. This issue could be due to the
+                "Proxy_or_LoadBalance" parameter in the "config.json" file not aligning with your network settings.
+                If requests are routed through a proxy or load balancer before reaching the Nginx server,
+                set the "Proxy_or_LoadBalance" parameter to "true." Otherwise, set it to "false."  
+                If IP address or user location information is critical for your, 
+                we recommend ensuring that the "Proxy_or_LoadBalance" parameter in the "config.json" file is configured correctly.
+                """
+                AsciArt.BorderIt(Text=Proxy_text,BorderColor=_y,TextColor=_w)
+                print("")
     print ("{:<100}".format(TimeofLog))
 
     if filterStatus:        
@@ -819,11 +845,6 @@ def ExportMenu():
         else:
             FilterStr = f'{_y}[ {_w}Disable {_y}]'    
         
-        if GEO_IS_DISABLE:
-            _geo = _D + _y
-        else:
-            _geo = _N + _y
-
         print(f"{_w}")
         print(f"press [ {_N}{_w}enter{_N}{_w} ] for Main Menu")
         print(f"type  [ {_N}{_w}0{_w}  ] quit{_reset}")
@@ -834,9 +855,9 @@ def ExportMenu():
         print(f"      [ {_N}{_y}5{_w}  ] Export Status Code (CSV)")
         print(f"      [ {_N}{_y}6{_w}  ] Export Unknown Agent (CSV)")
         print(f"      [ {_N}{_y}7{_w}  ] Export All Agent (CSV)")
-        print(f"      [ {_geo}8{_w}  ] Export Country")
-        print(f"      [ {_geo}9{_w}  ] Export Country (Without Region & City)")        
-        print(f"      [ {_geo}10{_w} ] Export TimeZone (CSV)")
+        print(f"      [ {_N}{_y}8{_w}  ] Export Country")
+        print(f"      [ {_N}{_y}9{_w}  ] Export Country (Without Region & City)")        
+        print(f"      [ {_N}{_y}10{_w} ] Export TimeZone (CSV)")
         print(f"      [ {_N}{_y}11{_w} ] Export Referer (CSV)")
 
         print("")
@@ -870,23 +891,11 @@ def ExportMenuLuncher():
     elif UserInput == 7:
         ExportAllAgentInCSV()
     elif UserInput == 8:
-        if GEO_IS_DISABLE:
-            print(f"IP geolocation is {_r}disabled. for analyzed Logs by {_g}Location information{_w} Enable This Option{_reset}")            
-            input(f"{_D}{_w}press enter to continue ...")
-        else:
-            ExportCountry(Withcity=True)
+        ExportCountry(Withcity=True)
     elif UserInput == 9:
-        if GEO_IS_DISABLE:
-            print(f"IP geolocation is {_r}disabled. for analyzed Logs by {_g}Location information{_w} Enable This Option{_reset}")            
-            input (f"{_D}{_w}press enter to continue ...")
-        else:
-            ExportCountry()
+        ExportCountry()
     elif UserInput == 10:
-        if GEO_IS_DISABLE:
-            print(f"IP geolocation is {_r}disabled. for analyzed Logs by {_g}Time Zone information{_w} Enable This Option{_reset}")            
-            input (f"{_D}{_w}press enter to continue ...")
-        else:
-            ExportAllTimeZone()            
+        ExportAllTimeZone()            
     elif UserInput == 11:
         ExportRefererinCSV()
 
@@ -1217,10 +1226,6 @@ def MainMenu():
         base.clearScreen()
         Banner.ParsingLogo()    
         printStatus()
-        if GEO_IS_DISABLE:
-            _geoColor = _D + _c
-        else:
-            _geoColor = _c
 
         if filterStatus:
             FilterStr = f'{_y}[ {_br}{_B} ON {_reset}{_y} ]'
@@ -1234,23 +1239,20 @@ def MainMenu():
         print(f"     [ {_c}4{_w}  ] {_c}list of Status Code{_reset}")
         print(f"     [ {_c}5{_w}  ] {_c}list of Unknown Agent{_reset}")        
         print(f"     [ {_c}6{_w}  ] {_c}list of Referer{_reset}")        
-        print(f"     [ {_geoColor}7{_reset}{_w}  ] {_geoColor}list of Country{_reset}")
-        print(f"     [ {_geoColor}8{_reset}{_w}  ] {_geoColor}list of Timezone{_reset}")
+        print(f"     [ {_c}7{_w}  ] {_c}list of Country{_reset}")
+        print(f"     [ {_c}8{_w}  ] {_c}list of Timezone{_reset}")
         print(f"     [ {_y}9{_w}  ] {_y}Filter/s - {FilterStr}{_reset}")        
         print(f"     [ {_r}10{_w} ] {_r}Reload Log file{_reset}")
         print(f"     [ {_b}11{_w} ] {_b}Export to File{_reset}")
-
+        if len(Ip_counter) < 5:
+                if CountLogs > 1000 :
+                    print(f"     [ {_c}proxy{_w} ] {_c}For Change {_y}Proxy config{_c} temporary {_reset}")
         print("")
-        if GEO_IS_DISABLE:
-            print(f"{_w}     IP geolocation is {_r}disabled{_w}. To enable this option, type [ {_y}geo{_w} ].")
-            print(f"{_w}     Enabling this option can increase log analysis time.")
-        print("")            
         UserInput = input(f"     {_B}{_w}Enter [ {_b}1 ~ 11{_w} ] or press {_b}Enter{_w} for reload :{_reset}")
 
-        if UserInput.strip().lower() == 'geo':
-            GEO_IS_DISABLE = False
-            return "geo"
-
+        if UserInput.strip().lower() == 'proxy':
+            return UserInput.strip().lower()
+        
         if UserInput.strip() == "":
             UserInput = '1'
         try:
@@ -1262,6 +1264,7 @@ def MainMenu():
         
     
 def PrimaryMainMenuLuncher():
+    global Proxy_or_LoadBalance
     UserInput = MainMenu()
     if UserInput == 0:
         base.FnExit()
@@ -1288,30 +1291,14 @@ def PrimaryMainMenuLuncher():
         FnPrintReferer(REFERER_COUNTER,NumberInt)
         input("Press Enter to continiue ...")
     elif UserInput == 7:
-        if GEO_IS_DISABLE:
-            base.clearScreen()
-            Banner.ParsingLogo()
-            print("")
-            print(f"{_w}{_B}IP geolocation is {_r}disabled{_w}. for analyzed Logs by {_y}Location information{_w} Enable This Option{_reset}")
-            print("")
-            input(f"{_w}{_D}press enter to continue ...{_reset}")            
-        else:
-            NumberInt = GetNumberofFromUser(len(Ip_counter))        
-            PrintIt = PrinCityandRegion()
-            FnPrintCountry(COUNTRY_COUNTER,MaxPrint=NumberInt,printIt=PrintIt)    
-            input("Press Enter to continiue ...")
+        NumberInt = GetNumberofFromUser(len(Ip_counter))        
+        PrintIt = PrinCityandRegion()
+        FnPrintCountry(COUNTRY_COUNTER,MaxPrint=NumberInt,printIt=PrintIt)    
+        input("Press Enter to continiue ...")
     elif UserInput == 8:
-        if GEO_IS_DISABLE:
-            base.clearScreen()
-            Banner.ParsingLogo()
-            print("")
-            print(f"{_w}{_B}IP geolocation is {_r}disabled{_w}. for analyzed Logs by {_y}Time Zone{_w} Enable This Option{_reset}")
-            print("")
-            input(f"{_w}{_D}press enter to continue ...{_reset}")            
-        else:
-            NumberInt = GetNumberofFromUser(len(Ip_counter))        
-            FnPrintTimeZone(TIMEZONE_COUNTER,MaxPrint=NumberInt)
-            input("Press Enter to continiue ...")
+        NumberInt = GetNumberofFromUser(len(Ip_counter))        
+        FnPrintTimeZone(TIMEZONE_COUNTER,MaxPrint=NumberInt)
+        input("Press Enter to continiue ...")
     elif UserInput == 9:
         FilterMenuLuncher(FilterMenu())
     elif UserInput == 10:    
@@ -1319,10 +1306,16 @@ def PrimaryMainMenuLuncher():
             dockerCheck()        
         LoadLogFile(ReloadLog=True)
         #LoadVaraiableFromLogs(logs_df)    
-    elif UserInput == 'geo':
-        LoadLogFile(ReloadLog=False)
     elif UserInput == 11:
         ExportMenuLuncher()
+    elif UserInput == 'proxy':
+        if len(Ip_counter) < 5:
+                if CountLogs > 1000 :        
+                    if Proxy_or_LoadBalance:
+                        Proxy_or_LoadBalance = False
+                    else:
+                        Proxy_or_LoadBalance = True            
+                    LoadLogFile()
     base.clearScreen()    
     PrimaryMainMenuLuncher()
 
@@ -1382,10 +1375,7 @@ def FilterMenu():
         else:
             StrReferer = f' is {_bb} ON {_reset}{_w} : {_y}{FILTER_REFERER}'
 
-        if  GEO_IS_DISABLE:            
-            _geo = _D + _b
-        else:
-            _geo = _b
+        
         print(f"{_w}")
         print(f"press [ {_D}{_w}Enter{_N}{_w} ] for back to main menu{_reset}")            
         print(f"type  [ {_D}{_w}0{_N}{_w}  ] quit{_reset}")                        
@@ -1394,7 +1384,7 @@ def FilterMenu():
         print(f"      [ {_b}3{_w}  ] {_b} Filter on Browser{BrwsStr}{_reset}")
         print(f"      [ {_b}4{_w}  ] {_b} Filter on Status Code{CodeStr}{_reset}")
         print(f"      [ {_b}5{_w}  ] {_b} Filter on Unknow Agent{UnknowStr}{_reset}")        
-        print(f"      [ {_geo}6{_reset}{_w}  ] {_geo} Filter on Country{COUNTRYStr} {_reset}")                
+        print(f"      [ {_b}6{_w}  ] {_b} Filter on Country{COUNTRYStr} {_reset}")                
         print(f"      [ {_b}7{_w}  ] {_b} Filter on Time range{StrTimeRange} {_reset}")        
         print(f"      [ {_b}8{_w}  ] {_b} Filter on Referer{StrReferer} {_reset}")        
         print(f"      [ {_r}9{_w}  ] {_r} All Filter Set OFF{_reset}")        
@@ -2253,9 +2243,9 @@ if __name__ == '__main__':
     FILTER_CODE = base.GetValue(FilterDict,"Status_Code",verbus=False,ReturnValueForNone=[])
     FILTER_UNKNOW_AGENT = base.GetValue(FilterDict,"unknow_agent",verbus=False,ReturnValueForNone=[])
     FILTER_COUNTRY = base.GetValue(FilterDict,"Country",verbus=False,ReturnValueForNone=[])    
-    FILTER_REFERER = base.GetValue(FilterDict,"Referer",verbus=False,ReturnValueForNone=[])    
+    FILTER_REFERER = base.GetValue(FilterDict,"Referer",verbus=False,ReturnValueForNone=[])        
     ManualScope = base.GetValue(FilterDict,"time",verbus=False,ReturnValueForNone='')
-
+    GEO_IS_DISABLE = False
     Date_pattern = r'\[(\d{2})/(\w{3})/(\d{4}):(\d{2}):(\d{2}):(\d{2}) [+-]\d{4}\]'
 
     
