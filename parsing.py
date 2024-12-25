@@ -212,14 +212,8 @@ def LoadLogFile(ReloadLog = False):
     base.clearScreen()
     Banner.PleaseWait()
     if LogsMode == 'file':
-        # Get total number of lines for progress tracking
-#        with open(LOG_FILE, 'r') as f:
-#            total_lines = sum(1 for _ in f)
         read_lines = 0
     
-        #################
-        #################
-        #################
         try:        
             if LogsStr == str: # Check Variable get data
                 pass
@@ -249,41 +243,10 @@ def LoadLogFile(ReloadLog = False):
                     browser_counter[_rst["BORWSER"]] += 1
                 else:
                     Unknown_Agent_counter[_rst["ALL_AGENT"]] += 1                        
-#                if GEO_IS_DISABLE is False:
-#                    UpdateGepCounter(_rst["GEO"])                        
             read_lines += 1
             progress = (read_lines / total_lines) * 100
             print(f" Progress: {_B}{_y}{progress:.2f}%{_reset}", end="\r")
 
-        #################
-        #################
-        #################
-
-
-        # Read file line by line and display progress
-#        with open(LOG_FILE, 'r') as f:            
-#            FirstLine = True
-#            matchFound = False
-#            for _line in f:                
-#                if re.search(Date_pattern, _line) == None:
-#                    continue
-#                else:
-#                    matchFound = True                
-#                _rst = ParingLogFileWithFilter(_line)
-#                if _rst != '':                    
-#                    Ip_counter[_rst[0]] +=1
-#                    url_counter[_rst[1]] += 1
-#                    status_code_counter[_rst[2]] += 1                    
-#                    REFERER_COUNTER[_rst[5]] += 1
-#                    if _rst[3] != 'unknow':
-#                        browser_counter[_rst[3]] += 1
-#                    else:
-#                        Unknown_Agent_counter[_rst[4]] += 1                        
-#                    if GEO_IS_DISABLE is False:
-#                        UpdateGepCounter(_rst[6])                        
-#                read_lines += 1
-#                progress = (read_lines / total_lines) * 100
-#                print(f" Progress: {_B}{_y}{progress:.2f}%{_reset}", end="\r")
         if matchFound == False:            
             msg = """
 The log structure does not match the Nginx log structure.
@@ -296,7 +259,7 @@ In the Nginx config, make sure the path to the access.log."""
 
             base.clearScreen()
             Banner.ParsingLogo()
-            print(f'{_y}{msg}{_reset}')            
+            AsciArt.BorderIt(Text=msg,BorderColor=_r,TextColor=_y)            
             base.FnExit()
     else:
         #logs = CONTAINER.logs().decode("utf-8")        
@@ -326,12 +289,6 @@ In the Nginx config, make sure the path to the access.log."""
             else:
                 matchFound = True
             _rst = ParingLogFileWithFilter(_line)                                
-#        if GEO_IS_DISABLE is False:
-#            LocationLst = GeoIpLocation.GetGeoLocationFromIP(LocationDict=MY_GEO_LOCATION,GeoDB=GEO_DB_NAME,IpAdress=ip_address,FilterOnCountry=FILTER_COUNTRY)
-#            if LocationLst == None:
-#                AddThisLine = False
-#        else:
-#            LocationLst = None
 
             if _rst != '':                
                 Ip_counter[_rst["IP"]] +=1
@@ -357,7 +314,7 @@ This situation occurs in the following cases:
         
             base.clearScreen()
             Banner.ParsingLogo()
-            print(f'{_y}{msg}{_reset}')            
+            AsciArt.BorderIt(Text=msg,BorderColor=_r,TextColor=_y)                        
             base.FnExit()
         else:
             AnalyzedDetectedIpFromGeo()    
@@ -367,7 +324,7 @@ def AnalyzedDetectedIpFromGeo():
     for ip_address in Ip_counter:
         LocationLst = GeoIpLocation.GetGeoLocationFromIP(LocationDict=MY_GEO_LOCATION,GeoDB=GEO_DB_NAME,IpAdress=ip_address,FilterOnCountry=FILTER_COUNTRY)
         if LocationLst != None:            
-           UpdateGepCounter(LocationLst)     
+            UpdateGepCounter(LocationLst)     
 
 def UpdateGepCounter(_rst):
     global COUNTRY_COUNTER

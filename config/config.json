@@ -8,8 +8,8 @@
         "Log_File" : "/home/beigi/temp/nginx/access.log.1"
     },
     "Docker_Api_Server" : {        
-        "container_name" : "nginx",                        
-        "Ip" : "10.100.52.2",
+        "container_name" : "nginx",
+        "Ip" : "10.1.52.120",
         "Port" : "2375"
     },
     "StatusCodes" :{
@@ -20,8 +20,7 @@
         "5x": [500,501,502,503,504,505,506,507,508,510,511],
         "NginxStatusCode": [444,494,495,496,497,499]
     },
-    "GeoConfig" : {
-        "GeoIpisDisable" : true,
+    "GeoConfig" : {        
         "GeoDatabasePath" : "/home/beigi/myApp/ParsingNginxLogs/geoLocation/GeoLite2-City.mmdb",
         "location" :{
             "Ronix" : {
