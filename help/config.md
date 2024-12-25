@@ -8,8 +8,9 @@ vim config/config.json
 
 ### Defualt line
 
-```json
 Default value for the number of lines when displaying information
+
+```json
 {
     "Max_Line_view" : 60,
 }
