@@ -1217,7 +1217,7 @@ def MainMenu():
             if _intUserInpt <= 11:
                 return _intUserInpt
         except:            
-            base.PrintMessage(messageString=f'Value ({UserInput}) not valid',MsgType="error", AddLine = True, addSpace = 0)        
+            base.PrintMessage(messageString=f'Value ({UserInput}) not valid',MsgType="error", AddLine = True, addSpace = 0)
         
     
 def PrimaryMainMenuLuncher():
