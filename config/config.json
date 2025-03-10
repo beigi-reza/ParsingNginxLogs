@@ -9,7 +9,7 @@
     },
     "Docker_Api_Server" : {        
         "container_name" : "nginx",
-        "Ip" : "10.1.8.180",
+        "Ip" : "10.1.52.120",
         "Port" : "2375"
     },
     "StatusCodes" :{
