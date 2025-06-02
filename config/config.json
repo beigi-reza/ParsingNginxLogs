@@ -1,15 +1,15 @@
 {
-    "ParsingMode" : "docker",
+    "ParsingMode" : "file",
     "Max_Line_view" : 60,
     "ExportPath" : "/home/beigi/temp/nginx/exp",
     "SearchMode" : "start",
     "Proxy_or_LoadBalance" : false,
     "LocalMode":{
-        "Log_File" : "/home/beigi/temp/nginx/access.log.1"
+        "Log_File" : "/home/beigi/temp/accesslog/access.log.1"
     },
     "Docker_Api_Server" : {        
         "container_name" : "nginx",
-        "Ip" : "10.1.52.120",
+        "Ip" : "10.100.52.2",
         "Port" : "2375"
     },
     "StatusCodes" :{
